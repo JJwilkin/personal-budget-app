@@ -848,9 +848,11 @@ export function App() {
 
   const refresh = useMutation({
     mutationFn: () => api.refreshFromPlaid({}),
-    onSuccess: () =>
+    onSuccess: (result) =>
       setRefreshMsg(
-        "Refresh started — new transactions will appear here once the check finishes.",
+        result.started
+          ? "Refresh started — new transactions will appear here once the check finishes."
+          : "Refresh isn't available in this copy — it runs on sample data. The live version refreshes from your accounts.",
       ),
     onError: () => setRefreshMsg("Couldn't start the refresh. Try again in a bit."),
   });

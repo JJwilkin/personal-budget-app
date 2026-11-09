@@ -1,7 +1,7 @@
 import { defineAction, z, type ActionsModule, type Ctx } from "@hatch/space-sdk";
 import { asc, eq } from "drizzle-orm";
 import * as schema from "./schema";
-import { SEED_META, SEED_TRANSACTIONS } from "./seedData";
+import { canRefreshFromPlaid, getSeedDataset } from "./dataSource";
 
 const txnSchema = z.object({
   id: z.string().min(1),
@@ -99,7 +99,7 @@ export const Actions = {
 
   seedIfEmpty: defineAction({
     description:
-      "Seeds the sample spending transactions and dashboard metadata bundled with the app, only when the transactions table is empty. Never overwrites marks or existing rows.",
+      "Seeds the spending transactions and dashboard metadata from the bundled dataset for the current data source (sample data in mock mode, the Plaid snapshot in the hosted build), only when the transactions table is empty. Never overwrites marks or existing rows.",
     request: z.object({}),
     response: z.object({ seeded: z.boolean(), count: z.number() }),
     async handler(ctx) {
@@ -110,7 +110,8 @@ export const Actions = {
       if (existing.length > 0) {
         return { seeded: false, count: existing.length };
       }
-      for (const t of SEED_TRANSACTIONS) {
+      const { transactions, meta } = getSeedDataset();
+      for (const t of transactions) {
         await db.insert(schema.transactions).values({
           id: t.id,
           txnDate: t.date,
@@ -124,10 +125,10 @@ export const Actions = {
       }
       await db.insert(schema.meta).values({
         key: "dashboard",
-        value: JSON.stringify(SEED_META),
+        value: JSON.stringify(meta),
       });
       ctx.invalidateQueries();
-      return { seeded: true, count: SEED_TRANSACTIONS.length };
+      return { seeded: true, count: transactions.length };
     },
   }),
 
@@ -231,10 +232,16 @@ export const Actions = {
 
   refreshFromPlaid: defineAction({
     description:
-      "Starts a background task that re-reads the user's linked accounts via Plaid and saves any new spending transactions, preserving marks.",
+      "Starts a background task that re-reads the user's linked accounts via Plaid and saves any new spending transactions, preserving marks. Only available when the data source is Plaid (the Muse-hosted build); in mock mode it returns started: false.",
     request: z.object({}),
     response: z.object({ started: z.boolean(), taskId: z.string().nullable() }),
     async handler(ctx) {
+      if (!canRefreshFromPlaid) {
+        // Mock mode (local dev / Claude Code): there is no Plaid connection
+        // here, so there is nothing to refresh from. The client shows a
+        // message for this instead of pretending a refresh started.
+        return { started: false, taskId: null };
+      }
       const message = [
         "Refresh the spending dashboard from the user's linked Plaid accounts.",
         "Read the Plaid connector doc at /opt/hatch/connectors/plaid/CONNECTOR.md and run `plaid status` first; if any institution needs reauth, stop and report that instead of saving partial data.",

@@ -4,6 +4,9 @@ client/dist-cvm/
 app.db
 app.db-shm
 app.db-wal
+dev.db
+dev.db-shm
+dev.db-wal
 .bun-cache/
 .space-build/
 .space-build-cvm/

@@ -7,7 +7,9 @@
     "typecheck": "bun x tsc --noEmit -p client/tsconfig.json && bun x tsc --noEmit -p server/tsconfig.json",
     "build": "bun run build:server && bun run build:client",
     "build:server": "cd server && bun build ./src/actions.ts --target=bun --outfile=./dist/actions.js",
-    "build:client": "bun ./client/build.mjs"
+    "build:client": "bun ./client/build.mjs",
+    "build:client:local": "bun scripts/build-client.mjs",
+    "dev": "bun run build:client:local && bun server/src/devServer.ts"
   },
   "dependencies": {
     "@hatch/space-sdk": "file:/opt/hatch/skills/spaces/ts-runtime/dist/space-sdk.tgz",
