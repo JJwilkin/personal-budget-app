@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDashboard } from "./api";
-import { dayLong, monthName, months as monthBuckets, monthsIn, monthTitle, summarize, weeks as weekBuckets, type Transaction } from "../../shared/spending";
+import { dayLong, monthName, months as monthBuckets, monthsIn, monthTitle, summarize, weeks as weekBuckets, isoOf, safeToSpend, type Transaction } from "../../shared/spending";
+import { BudgetSheet } from "./Budget";
 import { MarkSheet } from "./MarkSheet";
 import { Overview } from "./Overview";
 import { Activity, Bills, Brex } from "./Screens";
@@ -51,6 +52,13 @@ export function App() {
   const months = useMemo(() => (data ? monthBuckets(data) : []), [data]);
   const marks = useMemo(() => new Map((data?.marks ?? []).map((m) => [m.transaction_id, m])), [data]);
   const closeSheet = useCallback(() => setEditing(null), []);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const closeBudget = useCallback(() => setBudgetOpen(false), []);
+  const today = isoOf(new Date());
+  const sts = useMemo(
+    () => (data?.budget && active ? safeToSpend(data, active, data.budget.monthly, today) : null),
+    [data, active, today],
+  );
 
   const i = active ? allMonths.indexOf(active) : -1;
   const previous = i > 0 ? (allMonths[i - 1] ?? null) : null;
@@ -104,6 +112,8 @@ export function App() {
           setCategory(c);
           go("activity");
         }}
+        sts={sts}
+        onEditBudget={() => setBudgetOpen(true)}
       />
     );
   } else if (tab === "activity") {
@@ -143,6 +153,9 @@ export function App() {
       </nav>
 
       {editing && <MarkSheet txn={editing} existing={marks.get(editing.id)} onClose={closeSheet} />}
+      {budgetOpen && data && active && (
+        <BudgetSheet data={data} sts={sts} month={active} todayIso={today} onClose={closeBudget} />
+      )}
     </>
   );
 }
