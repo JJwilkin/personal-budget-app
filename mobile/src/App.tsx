@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDashboard } from "./api";
 import { dayLong, monthName, months as monthBuckets, monthsIn, monthTitle, summarize, weeks as weekBuckets, isoOf, safeToSpend, type Transaction } from "../../shared/spending";
 import { BudgetSheet } from "./Budget";
+import { SettingsSheet } from "./Settings";
 import { MarkSheet } from "./MarkSheet";
 import { Overview } from "./Overview";
 import { Activity, Bills, Brex } from "./Screens";
@@ -54,6 +55,8 @@ export function App() {
   const closeSheet = useCallback(() => setEditing(null), []);
   const [budgetOpen, setBudgetOpen] = useState(false);
   const closeBudget = useCallback(() => setBudgetOpen(false), []);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
   const today = isoOf(new Date());
   const sts = useMemo(
     () => (data?.budget && active ? safeToSpend(data, active, data.budget.monthly, today) : null),
@@ -104,7 +107,6 @@ export function App() {
   } else if (tab === "overview") {
     body = (
       <Overview
-        data={data}
         summary={summary}
         weeks={weeks}
         months={months}
@@ -117,7 +119,7 @@ export function App() {
       />
     );
   } else if (tab === "activity") {
-    body = <Activity summary={summary} marks={marks} category={category} onOpen={setEditing} onClearCategory={() => setCategory(null)} />;
+    body = <Activity summary={summary} marks={marks} category={category} onOpen={setEditing} onCategory={setCategory} />;
   } else if (tab === "brex") {
     body = <Brex data={data} summary={summary} marks={marks} />;
   } else {
@@ -129,6 +131,11 @@ export function App() {
   return (
     <>
       <Screen
+        action={
+          <button type="button" className="icon-button" onClick={() => setSettingsOpen(true)} aria-label="Settings: accounts and look">
+            <Glyph d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" strokeWidth={1.8} />
+          </button>
+        }
         title={title}
         subtitle={tab === "bills" ? undefined : subtitle}
         leading={showMonthButtons ? nav.leading : null}
@@ -153,6 +160,7 @@ export function App() {
       </nav>
 
       {editing && <MarkSheet txn={editing} existing={marks.get(editing.id)} onClose={closeSheet} />}
+      {settingsOpen && data && <SettingsSheet data={data} onClose={closeSettings} />}
       {budgetOpen && data && active && (
         <BudgetSheet data={data} month={active} todayIso={today} onClose={closeBudget} />
       )}

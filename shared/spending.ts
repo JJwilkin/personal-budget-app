@@ -344,3 +344,10 @@ export function budgetSuggestions(data: Dashboard, todayIso: string): { label: s
   for (const t of [...totals].reverse()) out.push({ label: monthName(t.month), amount: Math.round(t.total) });
   return out.slice(0, 4);
 }
+
+/** Account name for rows; with compact, only the "··1234" ending when the bank provides one. */
+export function shortAccount(label: string, compact = false): string {
+  const i = label.indexOf("··");
+  if (i < 0) return label;
+  return compact ? label.slice(i) : label;
+}

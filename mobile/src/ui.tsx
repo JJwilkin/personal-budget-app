@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { categoryColor, dayShort, MARK_LABELS, money, type Mark, type Transaction } from "../../shared/spending";
+import { categoryColor, dayShort, MARK_LABELS, shortAccount, money, type Mark, type Transaction } from "../../shared/spending";
 
 // ---------- glyphs ----------
 
@@ -63,12 +63,15 @@ export function Screen({
   subtitle,
   leading,
   trailing,
+  action,
   children,
 }: {
   title: string;
   subtitle?: string;
   leading?: ReactNode;
   trailing?: ReactNode;
+  /** A button beside the large title, e.g. settings. */
+  action?: ReactNode;
   children: ReactNode;
 }) {
   const scrolled = useScrolled();
@@ -81,7 +84,10 @@ export function Screen({
           <div>{trailing}</div>
         </div>
       </header>
-      <h1 className="large-title">{title}</h1>
+      <div className="large-title-row">
+        <h1 className="large-title">{title}</h1>
+        {action}
+      </div>
       {subtitle && <p className="large-subtitle">{subtitle}</p>}
       <div className="content">{children}</div>
     </main>
@@ -165,7 +171,7 @@ export function TxnRow({
 }) {
   const sub = mark
     ? `${MARK_LABELS[mark.mark_type]} ${money(mark.amount)}`
-    : `${showDate ? `${dayShort(txn.date)} · ` : ""}${txn.category} · ${txn.account}`;
+    : `${showDate ? `${dayShort(txn.date)} · ` : ""}${txn.category} · ${shortAccount(txn.account, true)}`;
   const body = (
     <>
       <CategoryIcon category={txn.category} />

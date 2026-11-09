@@ -26,7 +26,8 @@ const ROOT = join(import.meta.dir, "..", "..");
 const DIST = join(ROOT, "client", "dist");
 // The mobile web app (mobile/), served at /m/ so it can be added to a home screen.
 const MOBILE_DIST = join(ROOT, "mobile", "dist");
-const DB_PATH = join(ROOT, "dev.db");
+// DEV_DB lets you point at another local database, e.g. a larger test dataset.
+const DB_PATH = process.env.DEV_DB ?? join(ROOT, "dev.db");
 const PORT = Number(process.env.PORT ?? 5173);
 
 const CREATE_TABLES = `

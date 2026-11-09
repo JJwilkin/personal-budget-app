@@ -8,18 +8,16 @@ import {
   monthName,
   monthTitle,
   type Bucket,
-  type Dashboard,
   type MonthSummary,
   type SafeToSpend,
 } from "../../shared/spending";
-import { BudgetCard } from "./Budget";
+import { budgetLine } from "./Budget";
 import { useLook } from "./look";
 import { CategoryIcon, Chevron, Section } from "./ui";
 
 type Range = "day" | "week" | "month";
 
 export function Overview({
-  data,
   summary,
   weeks,
   months,
@@ -27,7 +25,6 @@ export function Overview({
   sts,
   onEditBudget,
 }: {
-  data: Dashboard;
   summary: MonthSummary;
   weeks: Bucket[];
   months: Bucket[];
@@ -35,30 +32,30 @@ export function Overview({
   sts: SafeToSpend | null;
   onEditBudget: () => void;
 }) {
-  const { look, setLook } = useLook();
+  const { look } = useLook();
+  const [allCategories, setAllCategories] = useState(false);
   // Category totals are net of marks, so shares are measured against the
   // net category total rather than the gross month total.
   const netTotal = summary.categories.reduce((s, c) => s + c.total, 0);
+  const shownCategories = allCategories ? summary.categories : summary.categories.slice(0, 5);
   return (
     <>
       <Section plain>
         {look === "calm" ? (
-          <CalmSummary summary={summary} />
+          <CalmSummary summary={summary} sts={sts} onEditBudget={onEditBudget} />
         ) : (
-          <div className="group"><div className="card"><SummaryCard summary={summary} /></div></div>
+          <div className="group"><div className="card"><SummaryCard summary={summary} sts={sts} onEditBudget={onEditBudget} /></div></div>
         )}
       </Section>
 
-      <BudgetCard sts={sts} onEdit={onEditBudget} />
-
-      <Section footer="Rent is left out of the bars so everyday spending stays readable. Tap or drag across the chart to see a bar.">
+      <Section footer="Rent is left out of the bars. Tap or drag across the chart to see a bar.">
         <div className="card">
           <SpendChart summary={summary} weeks={weeks} months={months} />
         </div>
       </Section>
 
-      <Section header="Categories" footer="Rent is your share only, with your roommate's transfer already taken off.">
-        {summary.categories.map((c) => {
+      <Section header="Categories" footer="Rent is your share, net of your roommate's transfer.">
+        {shownCategories.map((c) => {
           const share = netTotal > 0 ? c.total / netTotal : 0;
           return (
             <button
@@ -83,35 +80,32 @@ export function Overview({
             </button>
           );
         })}
-      </Section>
-
-      {data.meta && data.meta.accounts.length > 0 && (
-        <Section header="Accounts" footer="Balances are the banks' last reported figures.">
-          {data.meta.accounts.map((a) => (
-            <div key={a.label} className="row">
-              <span className="row-main">{a.label}</span>
-              <span className="num dim">{a.owed ? `${a.balance} owed` : a.balance}</span>
-            </div>
-          ))}
-        </Section>
-      )}
-
-      <Section header="Look" plain footer="Changes how the app looks on this device only.">
-        <div className="segmented" role="group" aria-label="Look">
-          <button type="button" aria-pressed={look === "ios"} onClick={() => setLook("ios")}>iOS</button>
-          <button type="button" aria-pressed={look === "calm"} onClick={() => setLook("calm")}>Calm</button>
-        </div>
+        {summary.categories.length > 5 && (
+          <button type="button" className="text-button" onClick={() => setAllCategories((v) => !v)}>
+            {allCategories ? "Show Top 5" : `Show All ${summary.categories.length}`}
+          </button>
+        )}
       </Section>
     </>
   );
 }
 
+/** The budget line under "Safe to spend today", or a link to set one. */
+function BudgetLink({ sts, onEditBudget }: { sts: SafeToSpend | null; onEditBudget: () => void }) {
+  return (
+    <button type="button" className="link-button" onClick={onEditBudget}>
+      {sts ? `${money0(sts.budget)} budget · Edit` : "Set a monthly budget"}
+    </button>
+  );
+}
+
 /** Calm fintech summary: a green hero card with the rent / everyday split, then three stat tiles. */
-function CalmSummary({ summary }: { summary: MonthSummary }) {
+function CalmSummary({ summary, sts, onEditBudget }: { summary: MonthSummary; sts: SafeToSpend | null; onEditBudget: () => void }) {
   const everyday = Math.max(0, summary.outOfPocketExRent);
   const whole = summary.rent + everyday;
   const rentPct = whole > 0 ? (summary.rent / whole) * 100 : 0;
   const [dollars, cents = "00"] = money(summary.outOfPocket).split(".");
+  const current = sts?.status === "current" ? sts : null;
   return (
     <div>
       <div className="hero">
@@ -130,14 +124,29 @@ function CalmSummary({ summary }: { summary: MonthSummary }) {
         </div>
       </div>
       <div className="tiles">
-        <div className="tile">
-          <span className="tile-value num">{money(summary.perDayExRent)}</span>
-          <span className="tile-label">a day, rent aside</span>
-        </div>
-        <div className="tile">
-          <span className="tile-value num">{summary.transactions.length}</span>
-          <span className="tile-label">transactions</span>
-        </div>
+        {current ? (
+          <>
+            <div className={`tile ${current.left < 0 ? "warn" : "good"}`}>
+              <span className="tile-value num">{money(current.safeToday)}</span>
+              <span className="tile-label">safe today</span>
+            </div>
+            <div className="tile">
+              <span className="tile-value num">{money(Math.max(0, current.left))}</span>
+              <span className="tile-label">left this month</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="tile">
+              <span className="tile-value num">{money(summary.perDayExRent)}</span>
+              <span className="tile-label">a day, rent aside</span>
+            </div>
+            <div className="tile">
+              <span className="tile-value num">{summary.transactions.length}</span>
+              <span className="tile-label">transactions</span>
+            </div>
+          </>
+        )}
         {summary.brexWaiting > 0 ? (
           <div className="tile warn">
             <span className="tile-value num">{money(summary.brexWaiting)}</span>
@@ -150,11 +159,46 @@ function CalmSummary({ summary }: { summary: MonthSummary }) {
           </div>
         )}
       </div>
+      <div style={{ marginTop: 10, paddingLeft: 4 }}>
+        <BudgetLink sts={sts} onEditBudget={onEditBudget} />
+      </div>
     </div>
   );
 }
 
-function SummaryCard({ summary }: { summary: MonthSummary }) {
+function SummaryCard({ summary, sts, onEditBudget }: { summary: MonthSummary; sts: SafeToSpend | null; onEditBudget: () => void }) {
+  const current = sts?.status === "current" ? sts : null;
+  const chips = (summary.brexWaiting > 0 || summary.marksSum > 0) && (
+    <div className="chips">
+      {summary.brexWaiting > 0 && <span className="badge orange">{money(summary.brexWaiting)} waiting on Brex</span>}
+      {summary.marksSum > 0 && <span className="badge green">{money(summary.marksSum)} paid back</span>}
+    </div>
+  );
+
+  if (current) {
+    const over = current.left < 0;
+    const used = current.budget > 0 ? Math.min(100, Math.max(0, (current.spent / current.budget) * 100)) : 100;
+    return (
+      <div>
+        <div className="eyebrow">Safe to spend today</div>
+        <div className="big-number num" style={{ color: over ? "var(--red)" : "var(--green)", marginTop: 2 }}>{money(current.safeToday)}</div>
+        <div className="dim" style={{ fontSize: 14 }}>{budgetLine(current)}</div>
+        <div className="meter" style={{ marginTop: 12 }} role="img" aria-label={`${Math.round(used)} percent of the budget used`}>
+          <span style={{ width: `${used}%`, background: over ? "var(--red)" : "var(--green)" }} />
+        </div>
+        <div className="stats">
+          <Stat value={money(Math.max(0, current.left))} label="Left this month" />
+          <Stat value={money(summary.outOfPocketExRent)} label="Everyday" />
+          <Stat value={money0(summary.outOfPocket)} label="With rent" />
+        </div>
+        {chips}
+        <div style={{ marginTop: 12 }}>
+          <BudgetLink sts={sts} onEditBudget={onEditBudget} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="eyebrow">Everyday spending</div>
@@ -163,16 +207,18 @@ function SummaryCard({ summary }: { summary: MonthSummary }) {
         {summary.rent > 0 && <span className="dim">+ {money0(summary.rent)} rent</span>}
       </div>
       <div className="stats">
-        <Stat value={money(summary.perDayExRent)} label="Per day" />
+        {sts ? (
+          <Stat value={sts.left >= 0 ? `${money0(sts.left)} under` : `${money0(-sts.left)} over`} label="Budget" />
+        ) : (
+          <Stat value={money(summary.perDayExRent)} label="Per day" />
+        )}
         <Stat value={money0(summary.outOfPocket)} label="Out of pocket" />
         <Stat value={String(summary.transactions.length)} label="Transactions" />
       </div>
-      {(summary.brexWaiting > 0 || summary.marksSum > 0) && (
-        <div className="chips">
-          {summary.brexWaiting > 0 && <span className="badge orange">{money(summary.brexWaiting)} waiting on Brex</span>}
-          {summary.marksSum > 0 && <span className="badge green">{money(summary.marksSum)} paid back</span>}
-        </div>
-      )}
+      {chips}
+      <div style={{ marginTop: 12 }}>
+        <BudgetLink sts={sts} onEditBudget={onEditBudget} />
+      </div>
     </div>
   );
 }
