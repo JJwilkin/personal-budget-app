@@ -56,7 +56,7 @@ const sum = (segs: { v: number }[]) => segs.reduce((s, x) => s + x.v, 0);
 
 /**
  * Stacked bars of everyday spending (rent left out, marked with a pin on the
- * day it landed), an optional 3-day trend line, hover tooltips, and click or
+ * day it landed), an optional 7-day trend line, hover tooltips, and click or
  * Enter to focus a bar. With a category picked, only that category is drawn.
  */
 export function SpendChart({
@@ -188,7 +188,7 @@ export function SpendChart({
             {tip.title} · {money(sum(shown(tip)))}
           </div>
           {tip.rent > 0 && <div className="opacity-80">Rent {money0(tip.rent)} landed (not in the bar)</div>}
-          {tip.trend !== undefined && !category && <div className="opacity-80">3-day average {money(tip.trend)}</div>}
+          {tip.trend !== undefined && !category && <div className="opacity-80">7-day average {money(tip.trend)}</div>}
           {tip.top.length > 0 && <div className="opacity-80">{tip.top.join(", ")}</div>}
         </div>
       )}

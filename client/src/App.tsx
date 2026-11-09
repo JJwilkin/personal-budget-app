@@ -18,6 +18,7 @@ import {
   summarize,
   weekEnding,
   type Dashboard,
+  type Mark,
   type MonthSummary,
   type Transaction,
 } from "../../shared/spending";
@@ -29,18 +30,20 @@ type MarkFilter = "all" | "unmarked" | "marked";
 
 // ---------- chart buckets ----------
 
-function bucketOf(txns: Transaction[]): Pick<ChartBucket, "segs" | "rent" | "top"> {
+function bucketOf(txns: Transaction[], marks: Map<string, Mark>): Pick<ChartBucket, "segs" | "rent" | "top"> {
   const byCat = new Map<string, number>();
   let rent = 0;
   for (const t of txns) {
+    const net = t.amount - (marks.get(t.id)?.amount ?? 0);
     if (t.category === "Rent") rent += t.amount;
-    else byCat.set(t.category, (byCat.get(t.category) ?? 0) + t.amount);
+    else byCat.set(t.category, (byCat.get(t.category) ?? 0) + net);
   }
   const top = txns
     .filter((t) => t.category !== "Rent")
-    .sort((a, b) => b.amount - a.amount)
+    .map((t) => ({ name: t.name, net: t.amount - (marks.get(t.id)?.amount ?? 0) }))
+    .sort((a, b) => b.net - a.net)
     .slice(0, 2)
-    .map((t) => `${t.name} ${money(t.amount)}`);
+    .map(({ name, net }) => `${name} ${money(net)}`);
   return { segs: [...byCat.entries()].map(([cat, v]) => ({ cat, v })), rent, top };
 }
 
@@ -50,7 +53,7 @@ function group(txns: Transaction[], keyOf: (t: Transaction) => string): Map<stri
   return m;
 }
 
-function dayBuckets(s: MonthSummary): ChartBucket[] {
+function dayBuckets(s: MonthSummary, marks: Map<string, Mark>): ChartBucket[] {
   const byDay = group(s.transactions, (t) => t.date);
   const out: ChartBucket[] = [];
   for (let d = 1; d <= daysInMonth(s.month); d++) {
@@ -59,31 +62,31 @@ function dayBuckets(s: MonthSummary): ChartBucket[] {
       key: iso,
       label: d === 1 || d % 5 === 0 ? String(d) : "",
       title: dayLong(iso),
-      ...bucketOf(byDay.get(iso) ?? []),
+      ...bucketOf(byDay.get(iso) ?? [], marks),
       future: s.isCurrent && d > s.daysCovered && !byDay.has(iso),
-      trend: s.daily[d - 1]?.trend3,
+      trend: s.daily[d - 1]?.trend7,
     });
   }
   return out;
 }
 
-function weekBuckets(data: Dashboard): ChartBucket[] {
+function weekBuckets(data: Dashboard, marks: Map<string, Mark>): ChartBucket[] {
   const byWeek = group(data.transactions, (t) => weekEnding(t.date));
   return [...byWeek.keys()].sort().map((end) => ({
     key: end,
     label: dayShort(end),
     title: `${dayShort(addDays(end, -6))} – ${dayShort(end)}`,
-    ...bucketOf(byWeek.get(end) ?? []),
+    ...bucketOf(byWeek.get(end) ?? [], marks),
   }));
 }
 
-function monthBuckets(data: Dashboard): ChartBucket[] {
+function monthBuckets(data: Dashboard, marks: Map<string, Mark>): ChartBucket[] {
   const byMonth = group(data.transactions, (t) => monthKey(t.date));
   return [...byMonth.keys()].sort().map((m) => ({
     key: m,
     label: monthShort(m),
     title: monthTitle(m),
-    ...bucketOf(byMonth.get(m) ?? []),
+    ...bucketOf(byMonth.get(m) ?? [], marks),
   }));
 }
 
@@ -143,7 +146,7 @@ export function App() {
   const prev = i > 0 ? summaries.get(months[i - 1]!) : undefined;
 
   // Chart
-  const buckets = range === "day" ? dayBuckets(summary) : range === "week" ? weekBuckets(data) : monthBuckets(data);
+  const buckets = range === "day" ? dayBuckets(summary, marks) : range === "week" ? weekBuckets(data, marks) : monthBuckets(data, marks);
   const chartFocus = range === "month" ? active : focus;
   const onChartFocus = (key: string | null) => {
     if (range === "month") {
@@ -231,7 +234,7 @@ export function App() {
             >
               <p className="-mt-2 text-[13px] text-[var(--dim)]">
                 Rent is left out of the bars; a house marks when it landed.{" "}
-                {range === "day" && "The line is your 3-day average. "}
+                {range === "day" && "The line is your 7-day average. "}
                 {range === "month" ? "Click a month to open it." : "Click a bar to see its transactions."}
               </p>
               <SpendChart

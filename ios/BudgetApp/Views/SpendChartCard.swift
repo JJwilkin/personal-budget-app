@@ -75,7 +75,7 @@ struct SpendChartCard: View {
         switch range {
         case .day:
             if let point = selectedDay {
-                return (DayKeys.long(point.iso), Money.format(point.exRent), "3-day average \(Money.format(point.trend3))")
+                return (DayKeys.long(point.iso), Money.format(point.exRent), "7-day average \(Money.format(point.trend7))")
             }
             return ("Daily average, rent aside", Money.format(summary.perDayExRent), "\(Money.format(summary.outOfPocketExRent)) over \(summary.daysCovered) days")
         case .week:
@@ -95,7 +95,7 @@ struct SpendChartCard: View {
 
     private var footnote: String {
         switch range {
-        case .day: "Rent is left out of the bars. The orange line is the 3-day moving average."
+        case .day: "Rent is left out of the bars. The orange line is the 7-day moving average."
         case .week: "Weeks run Monday to Sunday. Rent is left out of the bars."
         case .month: "Rent is left out of the bars. Tap a month to see its total."
         }
@@ -121,7 +121,7 @@ struct SpendChartCard: View {
             ForEach(summary.daily) { point in
                 LineMark(
                     x: .value("Day", point.date, unit: .day),
-                    y: .value("3-day average", point.trend3)
+                    y: .value("7-day average", point.trend7)
                 )
                 .interpolationMethod(.catmullRom)
                 .foregroundStyle(.orange)

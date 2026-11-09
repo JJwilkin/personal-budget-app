@@ -52,22 +52,26 @@ final class MonthSummaryTests: XCTestCase {
         XCTAssertEqual(november.marksSum, 20.55, accuracy: 0.001)
         XCTAssertEqual(november.outOfPocket, 1235.60, accuracy: 0.001)
         XCTAssertEqual(november.total, 1256.15, accuracy: 0.001, "Marks don't change total spending")
+        // The marked money also comes off the chart: Nov 5's bar and the
+        // Groceries total drop from $41.10 to $20.55.
+        XCTAssertEqual(november.daily[4].exRent, 20.55, accuracy: 0.001)
+        XCTAssertEqual(november.categories.first { $0.category == "Groceries" }?.total, 20.55, accuracy: 0.001)
     }
 
-    func testDailySeriesLeavesRentOutAndAveragesThreeDays() {
+    func testDailySeriesLeavesRentOutAndAveragesSevenDays() {
         let november = MonthSummary(dashboard: sample, month: "2026-11")
         let exRent = november.daily.map(\.exRent)
 
         XCTAssertEqual(november.daily.count, 8)
         XCTAssertEqual(exRent, [0, 0, 5.25, 0, 41.10, 9.80, 0, 0])
         XCTAssertEqual(november.daily[1].rent, 1200, accuracy: 0.001)
-        XCTAssertEqual(november.daily[0].trend3, 0, accuracy: 0.001)
-        XCTAssertEqual(november.daily[4].trend3, (5.25 + 0 + 41.10) / 3, accuracy: 0.001)
-        XCTAssertEqual(november.daily[5].trend3, (0 + 41.10 + 9.80) / 3, accuracy: 0.001)
+        XCTAssertEqual(november.daily[0].trend7, 0, accuracy: 0.001)
+        XCTAssertEqual(november.daily[4].trend7, (5.25 + 0 + 41.10) / 5, accuracy: 0.001)
+        XCTAssertEqual(november.daily[5].trend7, (5.25 + 0 + 41.10 + 9.80) / 6, accuracy: 0.001)
     }
 
     func testWeeksRunMondayToSunday() {
-        let weeks = MonthSummary.weeks(in: sample.transactions)
+        let weeks = MonthSummary.weeks(in: sample.transactions, marks: sample.marks)
 
         XCTAssertEqual(weeks.count, 9)
         XCTAssertEqual(weeks.first?.end, "2026-09-06")
@@ -80,7 +84,7 @@ final class MonthSummaryTests: XCTestCase {
     }
 
     func testMonthTotals() {
-        let months = MonthSummary.months(in: sample.transactions)
+        let months = MonthSummary.months(in: sample.transactions, marks: sample.marks)
         XCTAssertEqual(months.map(\.month), ["2026-09", "2026-10", "2026-11"])
         XCTAssertEqual(months.last?.exRent ?? 0, 56.15, accuracy: 0.001)
     }

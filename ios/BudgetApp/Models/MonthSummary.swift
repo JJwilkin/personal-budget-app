@@ -12,8 +12,8 @@ struct DailyPoint: Identifiable, Equatable {
     let date: Date
     let total: Double
     let rent: Double
-    /// Trailing 3-day average of `exRent` (fewer days at the start of the month).
-    let trend3: Double
+    /// Trailing 7-day average of `exRent` (fewer days at the start of the month).
+    let trend7: Double
 
     var id: String { iso }
     var exRent: Double { total - rent }
@@ -69,6 +69,10 @@ struct MonthSummary {
     init(dashboard: Dashboard, month: String) {
         self.month = month
         let marks = Dictionary(dashboard.marks.map { ($0.transactionId, $0) }, uniquingKeysWith: { a, _ in a })
+        /// Amount left after money marked as paid back, reimbursed, or refunded.
+        /// Chart inputs use this so marking a transaction redraws the graph;
+        /// headline totals keep gross amounts and subtract marks separately.
+        func net(_ t: Transaction) -> Double { t.amount - (marks[t.id]?.amount ?? 0) }
         let txns = dashboard.transactions
             .filter { DayKeys.monthKey($0.date) == month }
             .sorted { $0.date == $1.date ? $0.amount > $1.amount : $0.date > $1.date }
@@ -88,45 +92,46 @@ struct MonthSummary {
         var byCategory: [String: (count: Int, total: Double)] = [:]
         for t in txns {
             let current = byCategory[t.category] ?? (0, 0)
-            byCategory[t.category] = (current.count + 1, current.total + t.amount)
+            byCategory[t.category] = (current.count + 1, current.total + net(t))
         }
         categories = byCategory
             .map { CategoryTotal(category: $0.key, count: $0.value.count, total: $0.value.total) }
             .sorted { $0.total == $1.total ? $0.category < $1.category : $0.total > $1.total }
 
-        var totalsByDay: [Int: (total: Double, rent: Double)] = [:]
+        var totalsByDay: [Int: (total: Double, net: Double, rent: Double)] = [:]
         for t in txns {
             let day = DayKeys.dayOfMonth(t.date)
-            let current = totalsByDay[day] ?? (0, 0)
-            totalsByDay[day] = (current.total + t.amount, current.rent + (t.category == "Rent" ? t.amount : 0))
+            let current = totalsByDay[day] ?? (0, 0, 0)
+            totalsByDay[day] = (current.total + t.amount, current.net + net(t), current.rent + (t.category == "Rent" ? t.amount : 0))
         }
         let lastDay = max(daysCovered, totalsByDay.keys.max() ?? 1)
         var exRentSeries: [Double] = []
         var points: [DailyPoint] = []
         for day in 1...lastDay {
             let iso = String(format: "%@-%02ld", month, day)
-            let values = totalsByDay[day] ?? (0, 0)
-            exRentSeries.append(values.total - values.rent)
-            let window = exRentSeries.suffix(3)
+            let values = totalsByDay[day] ?? (0, 0, 0)
+            exRentSeries.append(values.net - values.rent)
+            let window = exRentSeries.suffix(7)
             let trend = window.reduce(0, +) / Double(window.count)
             points.append(DailyPoint(
                 iso: iso,
                 date: DayKeys.date(iso) ?? Date(),
                 total: values.total,
                 rent: values.rent,
-                trend3: trend
+                trend7: trend
             ))
         }
         daily = points
     }
 
     /// Monday–Sunday weeks across every transaction, oldest first.
-    static func weeks(in transactions: [Transaction]) -> [WeekBucket] {
+    static func weeks(in transactions: [Transaction], marks: [Mark]) -> [WeekBucket] {
+        let marked = Dictionary(marks.map { ($0.transactionId, $0) }, uniquingKeysWith: { a, _ in a })
         var buckets: [String: (total: Double, rent: Double)] = [:]
         for t in transactions {
             let end = DayKeys.weekEnding(t.date)
             let current = buckets[end] ?? (0, 0)
-            buckets[end] = (current.total + t.amount, current.rent + (t.category == "Rent" ? t.amount : 0))
+            buckets[end] = (current.total + (t.amount - (marked[t.id]?.amount ?? 0)), current.rent + (t.category == "Rent" ? t.amount : 0))
         }
         return buckets.keys.sorted().map { end in
             let values = buckets[end] ?? (0, 0)
@@ -135,12 +140,13 @@ struct MonthSummary {
     }
 
     /// Spending per month across every transaction, oldest first.
-    static func months(in transactions: [Transaction]) -> [MonthTotal] {
+    static func months(in transactions: [Transaction], marks: [Mark]) -> [MonthTotal] {
+        let marked = Dictionary(marks.map { ($0.transactionId, $0) }, uniquingKeysWith: { a, _ in a })
         var buckets: [String: (total: Double, rent: Double)] = [:]
         for t in transactions {
             let key = DayKeys.monthKey(t.date)
             let current = buckets[key] ?? (0, 0)
-            buckets[key] = (current.total + t.amount, current.rent + (t.category == "Rent" ? t.amount : 0))
+            buckets[key] = (current.total + (t.amount - (marked[t.id]?.amount ?? 0)), current.rent + (t.category == "Rent" ? t.amount : 0))
         }
         return buckets.keys.sorted().map { key in
             let values = buckets[key] ?? (0, 0)

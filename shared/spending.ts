@@ -104,7 +104,7 @@ export const money0 = (n: number) => money(Math.round(n), 0);
 
 // ---------- summaries ----------
 
-export type DailyPoint = { iso: string; day: number; total: number; rent: number; exRent: number; trend3: number };
+export type DailyPoint = { iso: string; day: number; total: number; rent: number; exRent: number; trend7: number };
 export type Bucket = { key: string; label: string; title: string; total: number; rent: number; exRent: number };
 
 export type MonthSummary = {
@@ -126,6 +126,9 @@ export type MonthSummary = {
 };
 
 const rentOf = (t: Transaction) => (t.category === "Rent" ? t.amount : 0);
+
+/** Amount left after money marked as paid back, reimbursed, or refunded. Chart inputs use this so marking a transaction redraws the graph; headline totals keep gross amounts and subtract marks separately. */
+const netOf = (t: Transaction, marks: Map<string, Mark>) => t.amount - (marks.get(t.id)?.amount ?? 0);
 
 export function monthsIn(data: Dashboard): string[] {
   return [...new Set(data.transactions.map((t) => monthKey(t.date)))].sort();
@@ -153,34 +156,35 @@ export function summarize(data: Dashboard, month: string): MonthSummary {
   for (const t of txns) {
     const c = cats.get(t.category) ?? { count: 0, total: 0 };
     c.count += 1;
-    c.total += t.amount;
+    c.total += netOf(t, marks);
     cats.set(t.category, c);
   }
   const categories = [...cats.entries()]
     .map(([category, v]) => ({ category, ...v }))
     .sort((a, b) => b.total - a.total);
 
-  const byDay = new Map<number, { total: number; rent: number }>();
+  const byDay = new Map<number, { total: number; net: number; rent: number }>();
   for (const t of txns) {
     const d = dayOfMonth(t.date);
-    const v = byDay.get(d) ?? { total: 0, rent: 0 };
+    const v = byDay.get(d) ?? { total: 0, net: 0, rent: 0 };
     v.total += t.amount;
+    v.net += netOf(t, marks);
     v.rent += rentOf(t);
     byDay.set(d, v);
   }
   const lastDay = Math.max(daysCovered, ...byDay.keys());
   const daily: DailyPoint[] = [];
   for (let day = 1; day <= lastDay; day++) {
-    const v = byDay.get(day) ?? { total: 0, rent: 0 };
-    const exRent = v.total - v.rent;
-    const window = [...daily.slice(-2).map((p) => p.exRent), exRent];
+    const v = byDay.get(day) ?? { total: 0, net: 0, rent: 0 };
+    const exRent = v.net - v.rent;
+    const window = [...daily.slice(-6).map((p) => p.exRent), exRent];
     daily.push({
       iso: `${month}-${String(day).padStart(2, "0")}`,
       day,
       total: v.total,
       rent: v.rent,
       exRent,
-      trend3: window.reduce((s, x) => s + x, 0) / window.length,
+      trend7: window.reduce((s, x) => s + x, 0) / window.length,
     });
   }
 
@@ -205,6 +209,7 @@ export function summarize(data: Dashboard, month: string): MonthSummary {
 
 function bucket(
   txns: Transaction[],
+  marks: Map<string, Mark>,
   keyOf: (t: Transaction) => string,
   describe: (key: string) => { label: string; title: string },
 ): Bucket[] {
@@ -212,7 +217,7 @@ function bucket(
   for (const t of txns) {
     const k = keyOf(t);
     const v = map.get(k) ?? { total: 0, rent: 0 };
-    v.total += t.amount;
+    v.total += netOf(t, marks);
     v.rent += rentOf(t);
     map.set(k, v);
   }
@@ -222,14 +227,16 @@ function bucket(
 }
 
 export function weeks(data: Dashboard): Bucket[] {
-  return bucket(data.transactions, (t) => weekEnding(t.date), (end) => ({
+  const marks = new Map(data.marks.map((m) => [m.transaction_id, m]));
+  return bucket(data.transactions, marks, (t) => weekEnding(t.date), (end) => ({
     label: dayShort(end),
     title: `${dayShort(addDays(end, -6))} – ${dayShort(end)}`,
   }));
 }
 
 export function months(data: Dashboard): Bucket[] {
-  return bucket(data.transactions, (t) => monthKey(t.date), (m) => ({
+  const marks = new Map(data.marks.map((m) => [m.transaction_id, m]));
+  return bucket(data.transactions, marks, (t) => monthKey(t.date), (m) => ({
     label: monthShort(m),
     title: monthTitle(m),
   }));

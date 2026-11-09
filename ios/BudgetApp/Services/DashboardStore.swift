@@ -42,11 +42,11 @@ final class DashboardStore {
     }
 
     var weeks: [WeekBucket] {
-        MonthSummary.weeks(in: dashboard?.transactions ?? [])
+        MonthSummary.weeks(in: dashboard?.transactions ?? [], marks: dashboard?.marks ?? [])
     }
 
     var monthTotals: [MonthTotal] {
-        MonthSummary.months(in: dashboard?.transactions ?? [])
+        MonthSummary.months(in: dashboard?.transactions ?? [], marks: dashboard?.marks ?? [])
     }
 
     var meta: DashboardMeta? { dashboard?.meta }

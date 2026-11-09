@@ -30,6 +30,9 @@ export function Overview({
   onOpenCategory: (category: string) => void;
 }) {
   const { look, setLook } = useLook();
+  // Category totals are net of marks, so shares are measured against the
+  // net category total rather than the gross month total.
+  const netTotal = summary.categories.reduce((s, c) => s + c.total, 0);
   return (
     <>
       <Section plain>
@@ -48,7 +51,7 @@ export function Overview({
 
       <Section header="Categories" footer="Rent is your share only, with your roommate's transfer already taken off.">
         {summary.categories.map((c) => {
-          const share = summary.total > 0 ? c.total / summary.total : 0;
+          const share = netTotal > 0 ? c.total / netTotal : 0;
           return (
             <button
               key={c.category}
@@ -191,14 +194,14 @@ function SpendChart({ summary, weeks, months }: { summary: MonthSummary; weeks: 
     bars = summary.daily.map((p) => ({
       key: p.iso,
       value: p.exRent,
-      trend: p.trend3,
+      trend: p.trend7,
       label: (p.day - 1) % 7 === 0 ? String(p.day) : "",
     }));
     const point = summary.daily.find((p) => p.iso === selected);
     if (point) {
       caption = dayLong(point.iso);
       value = money(point.exRent);
-      detail = point.rent > 0 ? `3-day average ${money(point.trend3)} · rent day` : `3-day average ${money(point.trend3)}`;
+      detail = point.rent > 0 ? `7-day average ${money(point.trend7)} · rent day` : `7-day average ${money(point.trend7)}`;
     } else {
       caption = "Daily average, rent aside";
       value = money(summary.perDayExRent);
@@ -242,7 +245,7 @@ function SpendChart({ summary, weeks, months }: { summary: MonthSummary; weeks: 
         highlight={highlight}
         ariaLabel={
           range === "day"
-            ? `Daily spending in ${monthTitle(summary.month)}, rent left out, with a 3-day average line`
+            ? `Daily spending in ${monthTitle(summary.month)}, rent left out, with a 7-day average line`
             : range === "week"
               ? "Weekly spending, rent left out"
               : "Monthly spending, rent left out"
@@ -251,7 +254,7 @@ function SpendChart({ summary, weeks, months }: { summary: MonthSummary; weeks: 
       {range === "day" && (
         <div className="dim" style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 14, height: 2, borderRadius: 1, background: "var(--orange-line)" }} aria-hidden="true" />
-          3-day moving average
+          7-day moving average
         </div>
       )}
     </div>
