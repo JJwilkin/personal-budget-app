@@ -21,3 +21,4 @@ ios/*.xcodeproj/
 ios/build/
 ios/DerivedData/
 xcuserdata/
+mobile/dist/

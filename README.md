@@ -47,6 +47,22 @@ artifact. Marks you make save to `dev.db` and survive restarts; delete it to
 reset to a clean sample slate. This is how to work on the site visually —
 no credentials, no bank connections.
 
+## Mobile web app (add to home screen)
+
+`mobile/` is a separate, phone-first client styled like a native iOS app:
+large titles, inset grouped lists, one Day / Week / Month chart, a bottom tab
+bar (Overview · Activity · Brex · Bills) and a sheet for marking money you got
+back. It uses the same server actions, so marks sync with the dashboard.
+
+`bun run dev` builds it and serves it at http://localhost:5173/m/. To put it
+on your iPhone, start the server, open `http://<your computer's address>:5173/m/`
+in Safari on the same Wi-Fi, then tap Share → Add to Home Screen. It opens
+full screen like an app. Build it on its own with `bun run build:mobile`.
+
+## Native iOS app
+
+`ios/` holds a SwiftUI version of the same app. See `ios/README.md`.
+
 ## Data sources
 
 The data layer has one switch: `DATA_SOURCE`, defined in

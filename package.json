@@ -4,12 +4,13 @@
   "type": "module",
   "packageManager": "bun@1.3.10",
   "scripts": {
-    "typecheck": "bun x tsc --noEmit -p client/tsconfig.json && bun x tsc --noEmit -p server/tsconfig.json",
+    "typecheck": "bun x tsc --noEmit -p client/tsconfig.json && bun x tsc --noEmit -p server/tsconfig.json && bun x tsc --noEmit -p mobile/tsconfig.json",
     "build": "bun run build:server && bun run build:client",
     "build:server": "cd server && bun build ./src/actions.ts --target=bun --outfile=./dist/actions.js",
     "build:client": "bun ./client/build.mjs",
     "build:client:local": "bun scripts/build-client.mjs",
-    "dev": "bun run build:client:local && bun server/src/devServer.ts"
+    "build:mobile": "bun scripts/build-mobile.mjs",
+    "dev": "bun run build:client:local && bun run build:mobile && bun server/src/devServer.ts"
   },
   "dependencies": {
     "@hatch/space-sdk": "file:/opt/hatch/skills/spaces/ts-runtime/dist/space-sdk.tgz",

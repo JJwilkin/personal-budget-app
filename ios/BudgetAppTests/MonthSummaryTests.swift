@@ -59,7 +59,7 @@ final class MonthSummaryTests: XCTestCase {
         let exRent = november.daily.map(\.exRent)
 
         XCTAssertEqual(november.daily.count, 8)
-        XCTAssertEqual(exRent, [0, 0, 5.25, 0, 41.10, 9.80, 0, 0].map { Double($0) })
+        XCTAssertEqual(exRent, [0, 0, 5.25, 0, 41.10, 9.80, 0, 0])
         XCTAssertEqual(november.daily[1].rent, 1200, accuracy: 0.001)
         XCTAssertEqual(november.daily[0].trend3, 0, accuracy: 0.001)
         XCTAssertEqual(november.daily[4].trend3, (5.25 + 0 + 41.10) / 3, accuracy: 0.001)

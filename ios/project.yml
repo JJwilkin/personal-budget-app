@@ -41,6 +41,8 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         PRODUCT_BUNDLE_IDENTIFIER: com.example.personalbudget.tests
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/BudgetApp.app/BudgetApp"
+        BUNDLE_LOADER: "$(TEST_HOST)"
 schemes:
   BudgetApp:
     build:

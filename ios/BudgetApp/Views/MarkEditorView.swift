@@ -140,7 +140,7 @@ struct MarkEditorView: View {
                     .disabled(!isValid || isSaving)
                 }
             }
-            .onAppear(perform: loadExisting)
+            .onAppear { loadExisting() }
         }
         .presentationDetents([.large])
     }

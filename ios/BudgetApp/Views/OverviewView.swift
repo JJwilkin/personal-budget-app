@@ -38,7 +38,7 @@ struct OverviewView: View {
 
                     if let accounts = store.meta?.accounts, !accounts.isEmpty {
                         Section("Accounts") {
-                            ForEach(accounts) { account in
+                            ForEach(Array(accounts.enumerated()), id: \.offset) { _, account in
                                 LabeledContent(account.label) {
                                     Text(account.owed ? "\(account.balance) owed" : account.balance)
                                         .monospacedDigit()

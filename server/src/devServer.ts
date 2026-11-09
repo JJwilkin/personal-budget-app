@@ -24,6 +24,8 @@ import { DATA_SOURCE, isMockData } from "./dataSource";
 
 const ROOT = join(import.meta.dir, "..", "..");
 const DIST = join(ROOT, "client", "dist");
+// The mobile web app (mobile/), served at /m/ so it can be added to a home screen.
+const MOBILE_DIST = join(ROOT, "mobile", "dist");
 const DB_PATH = join(ROOT, "dev.db");
 const PORT = Number(process.env.PORT ?? 5173);
 
@@ -74,6 +76,7 @@ const CONTENT_TYPES: Record<string, string> = {
   ".js": "text/javascript",
   ".css": "text/css",
   ".json": "application/json",
+  ".webmanifest": "application/manifest+json",
   ".webp": "image/webp",
   ".png": "image/png",
   ".svg": "image/svg+xml",
@@ -89,7 +92,8 @@ const server = Bun.serve({
   port: PORT,
   async fetch(req) {
     const url = new URL(req.url);
-    if (req.method === "POST" && url.pathname === "/actions") {
+    // Both apps POST to ./actions relative to their page: /actions and /m/actions.
+    if (req.method === "POST" && (url.pathname === "/actions" || url.pathname === "/m/actions")) {
       const { action, args } = (await req.json()) as {
         action: string;
         args?: Record<string, unknown>;
@@ -111,14 +115,22 @@ const server = Bun.serve({
     if (req.method !== "GET") {
       return new Response("Method not allowed", { status: 405 });
     }
-    let path = url.pathname === "/" ? "/index.html" : url.pathname;
-    let file = join(DIST, path);
-    if (!existsSync(file) || !file.startsWith(DIST)) {
-      file = join(DIST, "index.html");
+    if (url.pathname === "/m") {
+      return Response.redirect(new URL("/m/", url).toString(), 302);
+    }
+    const isMobile = url.pathname.startsWith("/m/");
+    const root = isMobile ? MOBILE_DIST : DIST;
+    const rel = isMobile ? url.pathname.slice(2) : url.pathname;
+    const path = rel === "/" ? "/index.html" : rel;
+    let file = join(root, path);
+    if (!existsSync(file) || !file.startsWith(root)) {
+      file = join(root, "index.html");
     }
     if (!existsSync(file)) {
       return new Response(
-        "Client not built yet. Run `bun run build:client:local` first.",
+        isMobile
+          ? "Mobile app not built yet. Run `bun run build:mobile` first."
+          : "Client not built yet. Run `bun run build:client:local` first.",
         { status: 500 },
       );
     }
@@ -130,4 +142,5 @@ const server = Bun.serve({
 
 console.log(`Spending dashboard (data source: ${DATA_SOURCE}${isMockData ? " — sample data" : ""})`);
 console.log(`Open http://localhost:${server.port}`);
+console.log(`Mobile app: http://localhost:${server.port}/m/ (on a phone, use this computer's network address)`);
 console.log("Marks save to dev.db; delete it to reset to a clean sample slate.");
