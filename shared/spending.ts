@@ -1,5 +1,6 @@
-// Types for the server's getDashboard payload, plus all spending math.
-// The rules match the web dashboard (client/src/App.tsx) and the iOS app:
+// Shared by the desktop dashboard (client/) and the mobile app (mobile/):
+// types for the server's getDashboard payload, plus all spending math.
+// The iOS app (ios/BudgetApp/Models/MonthSummary.swift) mirrors these rules:
 // out of pocket = spending − Brex reimbursements that landed − marked paybacks,
 // and rent is your share only, net of your roommate's transfer.
 

@@ -41,6 +41,7 @@
   --rust: #b3402a;
   --hero: #0f7b5f;
   --hero-accent: #ffd66b;
+  --trend: #d98a1f;
   --radius: 24px;
   --space-surface: var(--surface);
   --space-surface-alt: var(--surface-2);
@@ -64,6 +65,7 @@
     --amber-soft: #3a2f12;
     --rust: #e07a5f;
     --hero: #13634e;
+    --trend: #f2b84b;
   }
 }
 

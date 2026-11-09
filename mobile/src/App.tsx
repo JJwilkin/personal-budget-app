@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDashboard } from "./api";
-import { dayLong, monthName, months as monthBuckets, monthsIn, monthTitle, summarize, weeks as weekBuckets, type Transaction } from "./data";
+import { dayLong, monthName, months as monthBuckets, monthsIn, monthTitle, summarize, weeks as weekBuckets, type Transaction } from "../../shared/spending";
 import { MarkSheet } from "./MarkSheet";
 import { Overview } from "./Overview";
 import { Activity, Bills, Brex } from "./Screens";

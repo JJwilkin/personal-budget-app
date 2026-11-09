@@ -6,5 +6,5 @@
     "types": ["bun-types", "react", "react-dom"],
     "tsBuildInfoFile": "./.tsbuildinfo.mobile"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "../shared/**/*"]
 }

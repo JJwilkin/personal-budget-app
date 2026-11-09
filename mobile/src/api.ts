@@ -2,7 +2,7 @@
 // { action, args }, answered by { data } or { error }. Marks saved here show
 // up on the web dashboard and in the iOS app.
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import type { Dashboard, MarkType } from "./data";
+import type { Dashboard, MarkType } from "../../shared/spending";
 
 async function call<T>(action: string, args: object = {}): Promise<T> {
   const res = await fetch("./actions", {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { dayLong, money, monthName, type Dashboard, type Mark, type MonthSummary, type Transaction } from "./data";
+import { dayLong, money, monthName, type Dashboard, type Mark, type MonthSummary, type Transaction } from "../../shared/spending";
 import { Section, TxnRow } from "./ui";
 
 type Filter = "all" | "marked" | "unmarked";
