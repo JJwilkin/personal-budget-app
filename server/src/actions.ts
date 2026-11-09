@@ -33,9 +33,15 @@ const metaSchema = z.object({
   ),
 });
 
+const budgetSchema = z.object({
+  /** Total monthly budget in dollars, rent included. */
+  monthly: z.number().positive(),
+});
+
 const dashboardResponse = z.object({
   seeded: z.boolean(),
   meta: metaSchema.nullable(),
+  budget: budgetSchema.nullable(),
   transactions: z.array(txnSchema),
   marks: z.array(
     z.object({
@@ -52,10 +58,11 @@ type Dashboard = z.infer<typeof dashboardResponse>;
 
 async function loadDashboard(ctx: Ctx): Promise<Dashboard> {
   const db = ctx.db<typeof schema>();
-  const [txnRows, markRows, metaRows] = await Promise.all([
+  const [txnRows, markRows, metaRows, budgetRows] = await Promise.all([
     db.select().from(schema.transactions).orderBy(asc(schema.transactions.txnDate)),
     db.select().from(schema.marks),
     db.select().from(schema.meta).where(eq(schema.meta.key, "dashboard")),
+    db.select().from(schema.meta).where(eq(schema.meta.key, "budget")),
   ]);
   const metaRow = metaRows[0];
   let meta: Dashboard["meta"] = null;
@@ -63,9 +70,16 @@ async function loadDashboard(ctx: Ctx): Promise<Dashboard> {
     const parsed = metaSchema.safeParse(JSON.parse(metaRow.value));
     meta = parsed.success ? parsed.data : null;
   }
+  let budget: Dashboard["budget"] = null;
+  const budgetRow = budgetRows[0];
+  if (budgetRow) {
+    const parsed = budgetSchema.safeParse(JSON.parse(budgetRow.value));
+    budget = parsed.success ? parsed.data : null;
+  }
   return {
     seeded: txnRows.length > 0,
     meta,
+    budget,
     transactions: txnRows.map((r) => ({
       id: r.id,
       date: r.txnDate,
@@ -163,6 +177,27 @@ export const Actions = {
             updatedAt: now,
           },
         });
+      ctx.invalidateQueries();
+      return { ok: true };
+    },
+  }),
+
+  setBudget: defineAction({
+    description:
+      "Sets the user's total monthly budget (rent included), or removes it when monthly is null. Safe to spend is worked out from it on the client.",
+    request: z.object({ monthly: z.number().positive().max(1_000_000).nullable() }),
+    response: z.object({ ok: z.literal(true) }),
+    async handler(ctx, args): Promise<{ ok: true }> {
+      const db = ctx.db<typeof schema>();
+      if (args.monthly === null) {
+        await db.delete(schema.meta).where(eq(schema.meta.key, "budget"));
+      } else {
+        const value = JSON.stringify({ monthly: Math.round(args.monthly * 100) / 100 });
+        await db
+          .insert(schema.meta)
+          .values({ key: "budget", value })
+          .onConflictDoUpdate({ target: schema.meta.key, set: { value } });
+      }
       ctx.invalidateQueries();
       return { ok: true };
     },

@@ -51,3 +51,10 @@ export function useRefreshFromAccounts() {
     mutationFn: () => call<{ started: boolean; taskId: string | null }>("refreshFromPlaid"),
   });
 }
+
+export function useSetBudget() {
+  return useMutation({
+    mutationFn: (monthly: number | null) => call<{ ok: true }>("setBudget", { monthly }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: DASHBOARD }),
+  });
+}

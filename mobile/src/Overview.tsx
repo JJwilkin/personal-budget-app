@@ -10,7 +10,9 @@ import {
   type Bucket,
   type Dashboard,
   type MonthSummary,
+  type SafeToSpend,
 } from "../../shared/spending";
+import { BudgetCard } from "./Budget";
 import { useLook } from "./look";
 import { CategoryIcon, Chevron, Section } from "./ui";
 
@@ -22,12 +24,16 @@ export function Overview({
   weeks,
   months,
   onOpenCategory,
+  sts,
+  onEditBudget,
 }: {
   data: Dashboard;
   summary: MonthSummary;
   weeks: Bucket[];
   months: Bucket[];
   onOpenCategory: (category: string) => void;
+  sts: SafeToSpend | null;
+  onEditBudget: () => void;
 }) {
   const { look, setLook } = useLook();
   // Category totals are net of marks, so shares are measured against the
@@ -42,6 +48,8 @@ export function Overview({
           <div className="group"><div className="card"><SummaryCard summary={summary} /></div></div>
         )}
       </Section>
+
+      <BudgetCard sts={sts} onEdit={onEditBudget} />
 
       <Section footer="Rent is left out of the bars so everyday spending stays readable. Tap or drag across the chart to see a bar.">
         <div className="card">

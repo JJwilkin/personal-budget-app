@@ -20,8 +20,12 @@ import {
   type Dashboard,
   type Mark,
   type MonthSummary,
+  type SafeToSpend,
   type Transaction,
+  isoOf,
+  safeToSpend,
 } from "../../shared/spending";
+import { BudgetDrawer, BudgetTile } from "./dash/Budget";
 import { MarkDrawer } from "./dash/MarkDrawer";
 import { SpendChart, type ChartBucket, type Range } from "./dash/SpendChart";
 import { Card, Chip, Segmented, TxnRow } from "./dash/ui";
@@ -120,6 +124,9 @@ export function App() {
     setShowAll(false);
   }, []);
   const closeDrawer = useCallback(() => setEditing(null), []);
+  const [budgetOpen, setBudgetOpen] = useState(false);
+  const closeBudget = useCallback(() => setBudgetOpen(false), []);
+  const today = isoOf(new Date());
 
   if (dash.isPending) {
     return <Shell><p className="py-24 text-center text-[var(--dim)]">Loading your spending…</p></Shell>;
@@ -142,8 +149,7 @@ export function App() {
   }
 
   const meta = data.meta;
-  const i = months.indexOf(active);
-  const prev = i > 0 ? summaries.get(months[i - 1]!) : undefined;
+  const sts = data.budget ? safeToSpend(data, active, data.budget.monthly, today) : null;
 
   // Chart
   const buckets = range === "day" ? dayBuckets(summary, marks) : range === "week" ? weekBuckets(data, marks) : monthBuckets(data, marks);
@@ -212,7 +218,7 @@ export function App() {
               </label>
             </header>
 
-            <Hero summary={summary} prev={prev} unmarked={unmarked} onShowUnmarked={() => setMarkFilter("unmarked")} />
+            <Hero summary={summary} sts={sts} unmarked={unmarked} onShowUnmarked={() => setMarkFilter("unmarked")} onEditBudget={() => setBudgetOpen(true)} />
 
             <Card
               title="Everyday spending"
@@ -335,6 +341,7 @@ export function App() {
       </div>
 
       {editing && <MarkDrawer txn={editing} existing={marks.get(editing.id)} onClose={closeDrawer} />}
+      {budgetOpen && <BudgetDrawer data={data} sts={sts} month={active} todayIso={today} onClose={closeBudget} />}
     </Shell>
   );
 }
@@ -445,19 +452,20 @@ function Sidebar({
 
 function Hero({
   summary,
-  prev,
+  sts,
   unmarked,
   onShowUnmarked,
+  onEditBudget,
 }: {
   summary: MonthSummary;
-  prev: MonthSummary | undefined;
+  sts: SafeToSpend | null;
   unmarked: number;
   onShowUnmarked: () => void;
+  onEditBudget: () => void;
 }) {
   const everyday = Math.max(0, summary.outOfPocketExRent);
   const rentPct = summary.outOfPocket > 0 ? Math.min(100, (summary.rent / summary.outOfPocket) * 100) : 0;
   const [dollars, cents = "00"] = money(summary.outOfPocket).split(".");
-  const pace = prev && prev.perDayExRent > 0 ? (summary.perDayExRent - prev.perDayExRent) / prev.perDayExRent : null;
 
   return (
     <section className="grid gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]" aria-label={`${monthTitle(summary.month)} summary`}>
@@ -493,26 +501,7 @@ function Hero({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="calm-tile">
-          <p className="num text-[22px] font-extrabold">{money(summary.perDayExRent)}</p>
-          <p className="text-[13px] text-[var(--dim)]">a day, rent aside</p>
-        </div>
-        <div className="calm-tile">
-          {pace === null ? (
-            <>
-              <p className="num text-[22px] font-extrabold">{summary.transactions.length}</p>
-              <p className="text-[13px] text-[var(--dim)]">transactions</p>
-            </>
-          ) : (
-            <>
-              <p className="num text-[22px] font-extrabold">
-                {pace > 0 ? "+" : pace < 0 ? "−" : ""}
-                {Math.abs(Math.round(pace * 100))}%
-              </p>
-              <p className="text-[13px] text-[var(--dim)]">vs {monthShort(prev!.month)}'s daily pace</p>
-            </>
-          )}
-        </div>
+        <BudgetTile sts={sts} onEdit={onEditBudget} />
         <div className="calm-tile" style={{ background: "var(--amber-soft)", color: "var(--amber)" }}>
           <p className="num text-[22px] font-extrabold">{money(summary.brexWaiting)}</p>
           <p className="text-[13px]">waiting on Brex</p>
