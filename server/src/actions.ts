@@ -34,7 +34,7 @@ const metaSchema = z.object({
 });
 
 const budgetSchema = z.object({
-  /** Total monthly budget in dollars, rent included. */
+  /** Monthly everyday-spending budget in dollars. Rent is outside the budget. */
   monthly: z.number().positive(),
 });
 
@@ -184,7 +184,7 @@ export const Actions = {
 
   setBudget: defineAction({
     description:
-      "Sets the user's total monthly budget (rent included), or removes it when monthly is null. Safe to spend is worked out from it on the client.",
+      "Sets the user's monthly everyday-spending budget (rent excluded), or removes it when monthly is null. Safe to spend is worked out from it on the client.",
     request: z.object({ monthly: z.number().positive().max(1_000_000).nullable() }),
     response: z.object({ ok: z.literal(true) }),
     async handler(ctx, args): Promise<{ ok: true }> {

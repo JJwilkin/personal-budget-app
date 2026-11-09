@@ -341,7 +341,7 @@ export function App() {
       </div>
 
       {editing && <MarkDrawer txn={editing} existing={marks.get(editing.id)} onClose={closeDrawer} />}
-      {budgetOpen && <BudgetDrawer data={data} sts={sts} month={active} todayIso={today} onClose={closeBudget} />}
+      {budgetOpen && <BudgetDrawer data={data} month={active} todayIso={today} onClose={closeBudget} />}
     </Shell>
   );
 }

@@ -6,7 +6,6 @@ import {
   money,
   money0,
   monthName,
-  safeToSpend,
   type Dashboard,
   type SafeToSpend,
 } from "../../shared/spending";
@@ -25,8 +24,8 @@ export function BudgetCard({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: (
   }
 
   const over = sts.left < 0;
-  const usedPct = sts.flexible > 0 ? Math.min(100, Math.max(0, (sts.spent / sts.flexible) * 100)) : 100;
-  const footer = `${money0(sts.budget)} budget − ${money0(sts.fixed)} rent${sts.rentPending ? " (expected)" : ""}`;
+  const usedPct = sts.budget > 0 ? Math.min(100, Math.max(0, (sts.spent / sts.budget) * 100)) : 100;
+  const footer = `${money0(sts.budget)} a month for everyday spending`;
 
   if (sts.status !== "current") {
     return (
@@ -62,10 +61,10 @@ export function BudgetCard({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: (
           <div style={{ textAlign: "right" }}>
             <div className="eyebrow">Left this month</div>
             <div className="num" style={{ fontSize: 22, fontWeight: 700 }}>{money(Math.max(0, sts.left))}</div>
-            <div className="dim" style={{ fontSize: 13 }}>of {money(sts.flexible)} after rent</div>
+            <div className="dim" style={{ fontSize: 13 }}>of {money(sts.budget)} budget</div>
           </div>
         </div>
-        <div className="meter" role="img" aria-label={`${Math.round(usedPct)} percent of the money after rent used`}>
+        <div className="meter" role="img" aria-label={`${Math.round(usedPct)} percent of the budget used`}>
           <span style={{ width: `${usedPct}%`, background: over ? "var(--red)" : "var(--green)" }} />
         </div>
       </div>
@@ -77,13 +76,11 @@ export function BudgetCard({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: (
 /** Bottom sheet for setting or changing the monthly budget. */
 export function BudgetSheet({
   data,
-  sts,
   month,
   todayIso,
   onClose,
 }: {
   data: Dashboard;
-  sts: SafeToSpend | null;
   month: string;
   todayIso: string;
   onClose: () => void;
@@ -107,9 +104,6 @@ export function BudgetSheet({
 
   const amount = Number(text.replace(/[$,\s]/g, ""));
   const valid = text.trim() !== "" && Number.isFinite(amount) && amount > 0;
-  // Rent to reserve is known even before a budget exists.
-  const fixed = sts?.fixed ?? safeToSpend(data, month, 0, todayIso).fixed;
-  const flexible = amount - fixed;
 
   const commit = (monthly: number | null) =>
     save.mutate(monthly, { onSuccess: onClose, onError: () => setError("Couldn't save the budget. Try again.") });
@@ -134,7 +128,7 @@ export function BudgetSheet({
           </button>
         </div>
         <div className="content">
-          <Section footer="Rent included. Shared bills stay out, as in your spending totals.">
+          <Section footer="Rent is outside this budget. Shared bills stay out, as in your spending totals.">
             <label className="row">
               <span className="row-main">Each month</span>
               <input
@@ -166,17 +160,15 @@ export function BudgetSheet({
 
           {valid && (
             <Section plain>
-              <p style={{ margin: "0 16px", fontSize: 15, color: flexible > 0 ? "var(--green)" : "var(--orange)" }}>
-                {flexible > 0
-                  ? `After rent (${money0(fixed)}), that leaves ${money0(flexible)} for everything else, about ${money(flexible / daysInMonth(month))} a day.`
-                  : `That's no more than rent (${money0(fixed)}), so nothing would be left to spend.`}
+              <p style={{ margin: "0 16px", fontSize: 15, color: "var(--green)" }}>
+                {`That leaves ${money0(amount)} for everyday spending, about ${money(amount / daysInMonth(month))} a day.`}
               </p>
             </Section>
           )}
 
           <Section header="How it works" plain>
             <p style={{ margin: "0 16px", fontSize: 15, color: "var(--label-2)" }}>
-              Each morning, what's left after rent and your spending is divided by the days left. Quiet days give the
+              Each morning, what's left of your budget after your spending is divided by the days left. Quiet days give the
               rest of the month a little more; a big day is spread over what remains.
             </p>
           </Section>

@@ -154,7 +154,7 @@ export function App() {
 
       {editing && <MarkSheet txn={editing} existing={marks.get(editing.id)} onClose={closeSheet} />}
       {budgetOpen && data && active && (
-        <BudgetSheet data={data} sts={sts} month={active} todayIso={today} onClose={closeBudget} />
+        <BudgetSheet data={data} month={active} todayIso={today} onClose={closeBudget} />
       )}
     </>
   );

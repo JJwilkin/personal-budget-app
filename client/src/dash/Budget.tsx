@@ -7,7 +7,6 @@ import {
   money,
   money0,
   monthName,
-  safeToSpend,
   type Dashboard,
   type SafeToSpend,
 } from "../../../shared/spending";
@@ -36,7 +35,7 @@ export function BudgetTile({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: (
       Edit budget
     </button>
   );
-  const usedPct = sts.flexible > 0 ? Math.min(100, Math.max(0, (sts.spent / sts.flexible) * 100)) : 100;
+  const usedPct = sts.budget > 0 ? Math.min(100, Math.max(0, (sts.spent / sts.budget) * 100)) : 100;
   const over = sts.left < 0;
 
   if (sts.status !== "current") {
@@ -50,7 +49,7 @@ export function BudgetTile({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: (
           {over ? `${money(-sts.left)} over` : `${money(sts.left)} under`}
         </p>
         <p className="text-[13px] text-[var(--dim)]">
-          {money(sts.spent)} of {money(sts.flexible)} after rent · {money0(sts.budget)} budget
+          {money(sts.spent)} of {money(sts.budget)} budget · everyday spending, rent aside
         </p>
       </div>
     );
@@ -77,16 +76,14 @@ export function BudgetTile({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: (
         <div className="text-right">
           <p className="text-[13px] font-bold text-[var(--dim)]">Left this month</p>
           <p className="num text-[22px] font-extrabold">{over ? money(0) : money(sts.left)}</p>
-          <p className="text-[13px] text-[var(--dim)]">of {money(sts.flexible)} after rent</p>
+          <p className="text-[13px] text-[var(--dim)]">of {money(sts.budget)} budget</p>
         </div>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-[var(--accent-soft)]" role="img" aria-label={`${Math.round(usedPct)} percent of the money after rent used`}>
+      <div className="h-2 overflow-hidden rounded-full bg-[var(--accent-soft)]" role="img" aria-label={`${Math.round(usedPct)} percent of the budget used`}>
         <div className="h-2 rounded-full" style={{ width: `${usedPct}%`, background: over ? "var(--rust)" : "var(--accent)" }} />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 text-[12px] text-[var(--dim)]">
-        <span>
-          {money0(sts.budget)} budget − {money0(sts.fixed)} rent{sts.rentPending ? " (expected)" : ""}
-        </span>
+        <span>Rent is outside this budget</span>
         {edit}
       </div>
     </div>
@@ -96,13 +93,11 @@ export function BudgetTile({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: (
 /** Side drawer for setting or changing the monthly budget. */
 export function BudgetDrawer({
   data,
-  sts,
   month,
   todayIso,
   onClose,
 }: {
   data: Dashboard;
-  sts: SafeToSpend | null;
   month: string;
   todayIso: string;
   onClose: () => void;
@@ -132,10 +127,7 @@ export function BudgetDrawer({
 
   const amount = Number(text.replace(/[$,\s]/g, ""));
   const valid = text.trim() !== "" && Number.isFinite(amount) && amount > 0;
-  // Rent to reserve is known even before a budget exists.
-  const fixed = sts?.fixed ?? safeToSpend(data, month, 0, todayIso).fixed;
-  const flexible = amount - fixed;
-  const perDay = flexible / daysInMonth(month);
+  const perDay = amount / daysInMonth(month);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -206,24 +198,17 @@ export function BudgetDrawer({
           <div
             className="rounded-[20px] px-5 py-4 text-[14px] leading-relaxed"
             style={{
-              background: flexible > 0 ? "var(--accent-soft)" : "var(--amber-soft)",
-              color: flexible > 0 ? "var(--accent)" : "var(--amber)",
+              background: "var(--accent-soft)",
+              color: "var(--accent)",
             }}
           >
-            {flexible > 0 ? (
-              <>
-                After rent ({money0(fixed)}), that leaves <b>{money0(flexible)}</b> for everything else, about{" "}
-                <b>{money(perDay)} a day</b>.
-              </>
-            ) : (
-              <>That's no more than rent ({money0(fixed)}), so there'd be nothing left to spend. Try a higher amount.</>
-            )}
+            That leaves <b>{money0(amount)}</b> for everyday spending, about <b>{money(perDay)} a day</b>.
           </div>
         )}
 
         <div className="calm-card flex flex-col gap-2 text-[13px] text-[var(--dim)]">
           <p className="font-bold text-[var(--text)]">How safe to spend works</p>
-          <p>Each morning: what's left after rent and what you've spent, divided by the days left. Spend less one day and the next days get a little more; spend more and it's spread over the rest of the month.</p>
+          <p>Each morning: what's left of your budget after what you've spent, divided by the days left. Spend less one day and the next days get a little more; spend more and it's spread over the rest of the month.</p>
           <p>Shared bills stay out. Money you mark as paid back, and Brex reimbursements once they land, go back into what's left.</p>
         </div>
 

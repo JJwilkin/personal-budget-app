@@ -34,7 +34,7 @@ export type Meta = {
 };
 
 export type Budget = {
-  /** Total monthly budget in dollars, rent included. */
+  /** Monthly everyday-spending budget in dollars. Rent is outside the budget. */
   monthly: number;
 };
 
@@ -274,15 +274,11 @@ export const categoryColor = (c: string) => CATEGORY_COLORS[c] ?? "#8e8e93";
 export type SafeToSpend = {
   month: string;
   status: "current" | "past" | "future";
+  /** The monthly everyday-spending budget. Rent is outside the budget. */
   budget: number;
-  /** Rent reserved for the month: what landed, or the last rent seen if it hasn't landed yet. */
-  fixed: number;
-  rentPending: boolean;
-  /** Budget left after rent: the money you actually decide how to spend. */
-  flexible: number;
   /** Everyday spending this month (rent aside), net of marks and landed Brex reimbursements. */
   spent: number;
-  /** flexible − spent; negative when over budget. */
+  /** budget − spent; negative when over budget. */
   left: number;
   /** Current month only. */
   today: string | null;
@@ -296,8 +292,8 @@ export type SafeToSpend = {
 };
 
 /**
- * Safe to spend for one month against a total monthly budget:
- *   (budget − rent − everyday spending before today) ÷ days left including today.
+ * Safe to spend for one month against an everyday-spending budget (rent excluded):
+ *   (budget − everyday spending before today) ÷ days left including today.
  * It is worked out once per day, so today's purchases reduce "left today"
  * rather than moving the day's number. Overspending is spread across the
  * days that remain.
@@ -307,40 +303,27 @@ export function safeToSpend(data: Dashboard, month: string, budget: number, toda
   const net = (t: Transaction) => t.amount - (marks.get(t.id)?.amount ?? 0);
   const inMonth = data.transactions.filter((t) => monthKey(t.date) === month);
 
-  const rentLanded = inMonth.reduce((s, t) => s + rentOf(t), 0);
-  let fixed = rentLanded;
-  if (fixed === 0) {
-    const earlier = data.transactions
-      .filter((t) => t.category === "Rent" && monthKey(t.date) < month)
-      .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
-    if (earlier) {
-      fixed = data.transactions
-        .filter((t) => t.category === "Rent" && monthKey(t.date) === monthKey(earlier.date))
-        .reduce((s, t) => s + t.amount, 0);
-    }
-  }
-  const flexible = budget - fixed;
   const brexReceived = data.meta?.brexReceivedByMonth[month] ?? 0;
   const everyday = inMonth.filter((t) => t.category !== "Rent");
 
   const nowMonth = monthKey(todayIso);
   const status = month < nowMonth ? "past" : month > nowMonth ? "future" : "current";
-  const base = { month, status, budget, fixed, rentPending: rentLanded === 0 && fixed > 0, flexible } as const;
+  const base = { month, status, budget } as const;
 
   if (status !== "current") {
     const spent = everyday.reduce((s, t) => s + net(t), 0) - brexReceived;
-    return { ...base, spent, left: flexible - spent, today: null, daysLeft: 0, safeToday: 0, spentToday: 0, leftToday: 0 };
+    return { ...base, spent, left: budget - spent, today: null, daysLeft: 0, safeToday: 0, spentToday: 0, leftToday: 0 };
   }
 
   const spentBefore = everyday.filter((t) => t.date < todayIso).reduce((s, t) => s + net(t), 0) - brexReceived;
   const spentToday = everyday.filter((t) => t.date >= todayIso).reduce((s, t) => s + net(t), 0);
   const daysLeft = daysInMonth(month) - dayOfMonth(todayIso) + 1;
-  const safeToday = Math.max(0, (flexible - spentBefore) / Math.max(1, daysLeft));
+  const safeToday = Math.max(0, (budget - spentBefore) / Math.max(1, daysLeft));
   const spent = spentBefore + spentToday;
   return {
     ...base,
     spent,
-    left: flexible - spent,
+    left: budget - spent,
     today: todayIso,
     daysLeft,
     safeToday,
@@ -349,10 +332,10 @@ export function safeToSpend(data: Dashboard, month: string, budget: number, toda
   };
 }
 
-/** Suggested budgets from finished months' out of pocket (rent included), newest first. */
+/** Suggested budgets from finished months' everyday spending (rent excluded), newest first. */
 export function budgetSuggestions(data: Dashboard, todayIso: string): { label: string; amount: number }[] {
   const done = monthsIn(data).filter((m) => m < monthKey(todayIso));
-  const totals = done.map((m) => ({ month: m, total: summarize(data, m).outOfPocket }));
+  const totals = done.map((m) => ({ month: m, total: summarize(data, m).outOfPocketExRent }));
   const out: { label: string; amount: number }[] = [];
   if (totals.length >= 2) {
     const avg = totals.reduce((s, t) => s + t.total, 0) / totals.length;
