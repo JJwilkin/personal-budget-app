@@ -785,7 +785,7 @@ function DrillPanel({
   const catRows = [...cats.entries()].sort((a, b) => b[1] - a[1]);
   return (
     <div
-      className="mt-3 rounded-[14px] border-2 border-[var(--amber)] bg-[var(--surface)] p-4 shadow-sm"
+      className="calm-card mt-3 border-2 border-[var(--amber)]"
       aria-label={`Transactions for ${title}`}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -1132,7 +1132,7 @@ export function App() {
             {meta.accounts.map((a) => (
               <span
                 key={a.label}
-                className="rounded-[10px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[13px] text-[var(--dim)] shadow-sm"
+                className="rounded-full bg-[var(--surface)] px-4 py-2 text-[13px] text-[var(--dim)]"
               >
                 {a.label} —{" "}
                 <span className="num font-semibold text-[var(--text)]">
@@ -1145,7 +1145,7 @@ export function App() {
         )}
 
         <div
-          className="mt-5 inline-flex rounded-full border border-[var(--border)] bg-[var(--surface-2)] p-[3px]"
+          className="mt-5 inline-flex rounded-full bg-[var(--surface-2)] p-[3px]"
           role="group"
           aria-label="Choose month"
         >
@@ -1171,57 +1171,64 @@ export function App() {
         </div>
 
         <section
-          className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4"
+          className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]"
           aria-label={`${monthLabel(activeMonth)} summary`}
         >
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--dim-2)]">
-              Out of pocket · {monthShort(activeMonth)}
-            </p>
-            <p className="num mt-1 text-[27px] font-extrabold tracking-tight">
-              {money0(view.oop)}
-            </p>
-            <p className="text-[13px] text-[var(--dim)]">
-              {money(view.total)} spent
-              {view.brexReceived > 0 &&
-                ` − ${money(view.brexReceived)} Brex received`}
-              {view.marksSum > 0 && ` − ${money(view.marksSum)} paid back`}
-            </p>
+          <div className="calm-hero flex flex-col justify-between gap-5">
+            <div>
+              <p className="text-[14px] font-semibold opacity-85">
+                Out of pocket · {monthLabel(activeMonth)}
+              </p>
+              <p className="num mt-1 text-[48px] leading-none font-extrabold tracking-[-1.5px]">
+                {money(view.oop).split(".")[0]}
+                <span className="text-[26px] opacity-75">.{money(view.oop).split(".")[1] ?? "00"}</span>
+              </p>
+              <p className="mt-2 text-[13.5px] opacity-85">
+                {money(view.total)} spent
+                {view.brexReceived > 0 && ` − ${money(view.brexReceived)} Brex received`}
+                {view.marksSum > 0 && ` − ${money(view.marksSum)} paid back`}
+              </p>
+            </div>
+            <div>
+              <div
+                className="flex h-[10px] overflow-hidden rounded-full bg-white/20"
+                role="img"
+                aria-label={`Rent ${money(view.rent)}, everyday ${money(Math.max(0, view.oop - view.rent))}`}
+              >
+                <span style={{ width: `${view.oop > 0 ? Math.min(100, (view.rent / view.oop) * 100) : 0}%`, background: "rgba(255,255,255,0.55)" }} />
+                <span style={{ flex: 1, background: "var(--hero-accent)" }} />
+              </div>
+              <div className="mt-3 flex flex-wrap justify-between gap-3 text-[13.5px]">
+                <span className="inline-flex items-center gap-2">
+                  <i className="inline-block h-2 w-2 rounded-full" style={{ background: "rgba(255,255,255,0.55)" }} />
+                  Rent {money0(view.rent)}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <i className="inline-block h-2 w-2 rounded-full" style={{ background: "var(--hero-accent)" }} />
+                  Everyday {money(Math.max(0, view.oop - view.rent))}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--dim-2)]">
-              Per day
-            </p>
-            <p className="num mt-1 text-[27px] font-extrabold tracking-tight">
-              {money0(view.oop / view.daysInMonth)}
-            </p>
-            <p className="text-[13px] text-[var(--dim)]">
-              {money0((view.oop - view.rent) / view.daysInMonth)} a day once rent
-              is set aside
-            </p>
-          </div>
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--dim-2)]">
-              Transactions
-            </p>
-            <p className="num mt-1 text-[27px] font-extrabold tracking-tight">
-              {view.txns.length}
-            </p>
-            <p className="text-[13px] text-[var(--dim)]">
-              {view.isCurrent ? "so far this month" : "in the full month"}
-            </p>
-          </div>
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--dim-2)]">
-              Paid back to you
-            </p>
-            <p className="num mt-1 text-[27px] font-extrabold tracking-tight">
-              {money0(view.marksSum + view.brexReceived)}
-            </p>
-            <p className="text-[13px] text-[var(--dim)]">
-              {money(view.brexReceived)} Brex deposits
-              {view.marksSum > 0 && ` · ${money(view.marksSum)} your marks`}
-            </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="calm-tile">
+              <p className="num text-[22px] font-extrabold">{money((view.oop - view.rent) / view.daysInMonth)}</p>
+              <p className="text-[13px] text-[var(--dim)]">a day, rent aside</p>
+            </div>
+            <div className="calm-tile">
+              <p className="num text-[22px] font-extrabold">{view.txns.length}</p>
+              <p className="text-[13px] text-[var(--dim)]">
+                transactions {view.isCurrent ? "so far" : "in the month"}
+              </p>
+            </div>
+            <div className="calm-tile" style={{ background: "var(--amber-soft)", color: "var(--amber)" }}>
+              <p className="num text-[22px] font-extrabold">{money(view.brexUnpaid)}</p>
+              <p className="text-[13px]">waiting on Brex</p>
+            </div>
+            <div className="calm-tile" style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+              <p className="num text-[22px] font-extrabold">{money(view.marksSum + view.brexReceived)}</p>
+              <p className="text-[13px]">paid back to you</p>
+            </div>
           </div>
         </section>
 
@@ -1237,7 +1244,7 @@ export function App() {
             tap a point on the line to see the average and how it changed
             from the day before.
           </p>
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="calm-card">
             <StackedBarChart
               rows={view.daily}
               ariaLabel={`Daily spending in ${monthLabel(activeMonth)}, stacked by category, with a smooth 3-day moving average line excluding rent. Hover a point on the line to see the average and its change from the previous day. Latest 3-day average ${money(view.dailyTrend3[view.dailyTrend3.length - 1] ?? 0)} per day.`}
@@ -1285,7 +1292,7 @@ export function App() {
             weeks and a vacation week. Bars are stacked by category — tap one
             to see that week's transactions.
           </p>
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="calm-card">
             <StackedBarChart
               rows={weekly}
               ariaLabel="Weekly spending totals, September to November 2026, stacked by category"
@@ -1311,7 +1318,7 @@ export function App() {
               Rent is shown at your share only — your roommate's transfer is already
               taken off.
             </p>
-            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+            <div className="calm-card">
               {view.catRows.map((c) => (
                 <div
                   key={c.cat}
@@ -1347,7 +1354,7 @@ export function App() {
             <p className="mb-3 text-[13.5px] text-[var(--dim)]">
               {monthLabel(activeMonth)}.
             </p>
-            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+            <div className="calm-card">
               {view.merchRows.map((m) => (
                 <div
                   key={m.name}
@@ -1372,7 +1379,7 @@ export function App() {
             Large-ticket is any single charge at or above the threshold (rent
             excluded — it's a fixed bill). Adjust it and the split updates.
           </p>
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="calm-card">
             <div className="flex flex-wrap items-center gap-3">
               <label className="text-[13.5px] font-semibold" htmlFor="threshold">
                 Large-ticket threshold
@@ -1468,7 +1475,7 @@ export function App() {
             your checking account come off out of pocket — eligible charges
             still waiting on Brex don't.
           </p>
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="calm-card">
             <div className="grid gap-3 text-center sm:grid-cols-3">
               <p>
                 <span className="block text-[12px] font-semibold uppercase tracking-[0.07em] text-[var(--dim-2)]">
@@ -1557,7 +1564,7 @@ export function App() {
               of the spending totals above — they're shared household bills
               tracked with your roommate on Splitwise.
             </p>
-            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+            <div className="calm-card">
               {meta.recurring.map((r) => (
                 <div
                   key={r.name}
@@ -1593,7 +1600,7 @@ export function App() {
               These amounts already come off your out-of-pocket totals above,
               and they're saved on the server so they show on every device.
             </p>
-            <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+            <div className="calm-card">
               {markedSummary.rows.slice(0, 12).map(({ mark, txn }) => (
                 <div
                   key={mark.transaction_id}
@@ -1663,7 +1670,7 @@ export function App() {
               everywhere.
             </span>
           </div>
-          <div className="rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+          <div className="calm-card">
             {visibleTxns.length === 0 && (
               <p className="py-4 text-center text-[var(--dim)]">
                 No transactions match this filter.
