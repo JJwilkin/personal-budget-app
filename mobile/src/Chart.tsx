@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent } from "react";
-import { money0 } from "./data";
+import { money0 } from "../../shared/spending";
 
 export type ChartBar = {
   key: string;

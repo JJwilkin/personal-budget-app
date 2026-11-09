@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useClearMark, useSaveMark } from "./api";
-import { dayLong, MARK_LABELS, money, type Mark, type MarkType, type Transaction } from "./data";
+import { dayLong, MARK_LABELS, money, type Mark, type MarkType, type Transaction } from "../../shared/spending";
 import { CategoryIcon, Section } from "./ui";
 
 /** Bottom sheet for recording money that came back on a transaction. */

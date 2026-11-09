@@ -10,7 +10,7 @@ import {
   type Bucket,
   type Dashboard,
   type MonthSummary,
-} from "./data";
+} from "../../shared/spending";
 import { useLook } from "./look";
 import { CategoryIcon, Chevron, Section } from "./ui";
 

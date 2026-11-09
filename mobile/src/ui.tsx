@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { categoryColor, dayShort, MARK_LABELS, money, type Mark, type Transaction } from "./data";
+import { categoryColor, dayShort, MARK_LABELS, money, type Mark, type Transaction } from "../../shared/spending";
 
 // ---------- glyphs ----------
 
