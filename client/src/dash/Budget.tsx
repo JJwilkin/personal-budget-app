@@ -57,7 +57,7 @@ export function BudgetTile({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: (
 
   return (
     <div className="calm-tile col-span-2 flex flex-col gap-3">
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-6">
         <div>
           <p className="text-[13px] font-bold text-[var(--dim)]">Safe to spend today</p>
           <p className="num text-[34px] font-extrabold leading-tight tracking-[-1px]" style={{ color: over ? "var(--rust)" : "var(--accent)" }}>

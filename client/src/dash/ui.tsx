@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { categoryColor, dayShort, MARK_LABELS, money, type Mark, type Transaction } from "../../../shared/spending";
+import { categoryColor, dayShort, MARK_LABELS, money, shortAccount, type Mark, type Transaction } from "../../../shared/spending";
 
 const GLYPHS: Record<string, string> = {
   Rent: "M4 11l8-7 8 7v9h-5v-6H9v6H4z",
@@ -17,15 +17,15 @@ const GLYPHS: Record<string, string> = {
   "People & transfers": "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20a6 6 0 0 1 12 0M17 5a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.6",
 };
 
-export function CategoryIcon({ category }: { category: string }) {
+export function CategoryIcon({ category, size = 40 }: { category: string; size?: number }) {
   const color = categoryColor(category);
   return (
     <span
-      className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px]"
-      style={{ color, background: `color-mix(in srgb, ${color} 15%, var(--surface))` }}
+      className="grid shrink-0 place-items-center"
+      style={{ width: size, height: size, borderRadius: size * 0.34, color, background: `color-mix(in srgb, ${color} 15%, var(--surface))` }}
       aria-hidden="true"
     >
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" width={size / 2} height={size / 2} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
         <path d={GLYPHS[category] ?? "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"} />
       </svg>
     </span>
@@ -90,49 +90,54 @@ export function Chip({ children, onRemove, label }: { children: ReactNode; onRem
   );
 }
 
+/**
+ * One transaction as a dense, fully clickable row; clicking opens the mark
+ * drawer. Marked rows show what came back and your share.
+ */
 export function TxnRow({
   txn,
   mark,
-  onMark,
+  onOpen,
+  showDate = false,
 }: {
   txn: Transaction;
   mark: Mark | undefined;
-  onMark: (txn: Transaction) => void;
+  onOpen: (txn: Transaction) => void;
+  showDate?: boolean;
 }) {
+  const sub = [showDate ? dayShort(txn.date) : null, txn.category, shortAccount(txn.account, true)].filter(Boolean).join(" · ");
   return (
-    <li className="grid grid-cols-[40px_minmax(0,1fr)_auto_auto] items-center gap-3 sm:grid-cols-[52px_40px_minmax(0,1fr)_auto_auto] rounded-[16px] px-3 py-2.5 hover:bg-[var(--bg)]">
-      <span className="hidden text-[13px] text-[var(--dim)] sm:block">{dayShort(txn.date)}</span>
-      <CategoryIcon category={txn.category} />
-      <span className="min-w-0">
-        <span className="flex items-center gap-2">
-          <span className="truncate font-bold">{txn.name}</span>
-          {txn.brex_eligible && (
-            <span className="shrink-0 rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--amber)]">Brex</span>
-          )}
-          {txn.pending && (
-            <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-bold text-[var(--dim)]">Pending</span>
-          )}
-        </span>
-        <span className={`block truncate text-[13px] ${mark ? "font-semibold text-[var(--accent)]" : "text-[var(--dim)]"}`}>
-          {mark
-            ? `${MARK_LABELS[mark.mark_type]} ${money(mark.amount)}${mark.note ? ` · ${mark.note}` : ""}`
-            : `${txn.category} · ${txn.account}`}
-          <span className="sm:hidden"> · {dayShort(txn.date)}</span>
-        </span>
-      </span>
-      <span className="num text-right">
-        <span className={`block font-bold ${mark ? "text-[13px] text-[var(--dim-2)] line-through" : ""}`}>{money(txn.amount)}</span>
-        {mark && <span className="block font-bold">{money(Math.max(0, txn.amount - mark.amount))}</span>}
-      </span>
+    <li>
       <button
         type="button"
-        onClick={() => onMark(txn)}
-        className={`rounded-full px-4 py-2 text-[13px] font-bold ${
-          mark ? "bg-[var(--accent-soft)] text-[var(--accent)]" : "bg-[var(--surface-2)] text-[var(--accent)] hover:brightness-95"
-        }`}
-        aria-label={`${mark ? "Edit mark on" : "Mark"} ${txn.name}, ${money(txn.amount)}`}
+        onClick={() => onOpen(txn)}
+        className="grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] px-3 py-2 text-left hover:bg-[var(--bg)] focus-visible:bg-[var(--bg)]"
+        aria-label={`${txn.name}, ${money(txn.amount)}, ${sub}${mark ? `, ${MARK_LABELS[mark.mark_type]} ${money(mark.amount)}` : ""}. Open to mark money back.`}
       >
-        {mark ? "Edit" : "Mark"}
+        <CategoryIcon category={txn.category} size={32} />
+        <span className="min-w-0">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-[14.5px] font-bold">{txn.name}</span>
+            {txn.brex_eligible && (
+              <span className="shrink-0 rounded-full bg-[var(--amber-soft)] px-1.5 py-px text-[10.5px] font-bold text-[var(--amber)]">Brex</span>
+            )}
+            {txn.pending && (
+              <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-1.5 py-px text-[10.5px] font-bold text-[var(--dim)]">Pending</span>
+            )}
+          </span>
+          <span className="block truncate text-[12.5px] text-[var(--dim)]">{sub}</span>
+        </span>
+        <span className="num flex flex-col items-end">
+          <span className={`text-[14.5px] font-bold ${mark ? "text-[12.5px] text-[var(--dim-2)] line-through" : ""}`}>{money(txn.amount)}</span>
+          {mark && (
+            <span className="flex items-center gap-1.5">
+              <span className="rounded-full bg-[var(--accent-soft)] px-1.5 py-px text-[10.5px] font-bold text-[var(--accent)]">
+                {MARK_LABELS[mark.mark_type]}
+              </span>
+              <span className="text-[14.5px] font-bold">{money(Math.max(0, txn.amount - mark.amount))}</span>
+            </span>
+          )}
+        </span>
       </button>
     </li>
   );

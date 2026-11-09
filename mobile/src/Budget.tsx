@@ -11,66 +11,13 @@ import {
 } from "../../shared/spending";
 import { Section } from "./ui";
 
-/** Safe to spend today plus what's left this month; a prompt to set a budget when there isn't one. */
-export function BudgetCard({ sts, onEdit }: { sts: SafeToSpend | null; onEdit: () => void }) {
-  if (!sts) {
-    return (
-      <Section footer="See what's safe to spend each day and what's left for the month.">
-        <button type="button" className="text-button" onClick={onEdit}>
-          Set a monthly budget
-        </button>
-      </Section>
-    );
+/** The line under "Safe to spend today": what's left today, how far over, or how many days it covers. */
+export function budgetLine(sts: SafeToSpend): string {
+  if (sts.left < 0) return `${money(-sts.left)} over for ${monthName(sts.month)}`;
+  if (sts.spentToday > 0) {
+    return sts.leftToday >= 0 ? `${money(sts.leftToday)} left today` : `${money(-sts.leftToday)} over today`;
   }
-
-  const over = sts.left < 0;
-  const usedPct = sts.budget > 0 ? Math.min(100, Math.max(0, (sts.spent / sts.budget) * 100)) : 100;
-  const footer = `${money0(sts.budget)} a month for everyday spending`;
-
-  if (sts.status !== "current") {
-    return (
-      <Section header={`${monthName(sts.month)} budget`} footer={footer}>
-        <div className="row">
-          <span className="row-main">{over ? "Over budget" : "Under budget"}</span>
-          <span className="num" style={{ fontWeight: 700, color: over ? "var(--red)" : "var(--green)" }}>
-            {money(Math.abs(sts.left))}
-          </span>
-        </div>
-        <button type="button" className="text-button" onClick={onEdit}>Edit Budget</button>
-      </Section>
-    );
-  }
-
-  const todayLine = over
-    ? `${money(-sts.left)} over for ${monthName(sts.month)}`
-    : sts.spentToday > 0
-      ? sts.leftToday >= 0
-        ? `${money(sts.leftToday)} left today`
-        : `${money(-sts.leftToday)} over today`
-      : `About the same each day for ${sts.daysLeft} ${sts.daysLeft === 1 ? "day" : "days"}`;
-
-  return (
-    <Section header="Budget" footer={footer}>
-      <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "start", gap: 12 }}>
-          <div>
-            <div className="eyebrow">Safe to spend today</div>
-            <div className="big-number num" style={{ color: over ? "var(--red)" : "var(--green)", fontSize: 32 }}>{money(sts.safeToday)}</div>
-            <div className="dim" style={{ fontSize: 14 }}>{todayLine}</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div className="eyebrow">Left this month</div>
-            <div className="num" style={{ fontSize: 22, fontWeight: 700 }}>{money(Math.max(0, sts.left))}</div>
-            <div className="dim" style={{ fontSize: 13 }}>of {money(sts.budget)} budget</div>
-          </div>
-        </div>
-        <div className="meter" role="img" aria-label={`${Math.round(usedPct)} percent of the budget used`}>
-          <span style={{ width: `${usedPct}%`, background: over ? "var(--red)" : "var(--green)" }} />
-        </div>
-      </div>
-      <button type="button" className="text-button" onClick={onEdit}>Edit Budget</button>
-    </Section>
-  );
+  return `About the same each day for ${sts.daysLeft} ${sts.daysLeft === 1 ? "day" : "days"}`;
 }
 
 /** Bottom sheet for setting or changing the monthly budget. */

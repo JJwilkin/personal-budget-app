@@ -9,13 +9,13 @@ export function Activity({
   marks,
   category,
   onOpen,
-  onClearCategory,
+  onCategory,
 }: {
   summary: MonthSummary;
   marks: Map<string, Mark>;
   category: string | null;
   onOpen: (txn: Transaction) => void;
-  onClearCategory: () => void;
+  onCategory: (category: string | null) => void;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -28,8 +28,16 @@ export function Activity({
     if (filter === "unmarked" && marked) return false;
     return !q || `${t.name} ${t.category} ${t.account}`.toLowerCase().includes(q);
   });
-  const days = new Map<string, Transaction[]>();
-  for (const t of list) days.set(t.date, [...(days.get(t.date) ?? []), t]);
+  const net = (t: Transaction) => t.amount - (marks.get(t.id)?.amount ?? 0);
+  const total = list.reduce((s, t) => s + net(t), 0);
+  const days: { date: string; txns: Transaction[]; total: number }[] = [];
+  for (const t of list) {
+    const last = days[days.length - 1];
+    if (last && last.date === t.date) {
+      last.txns.push(t);
+      last.total += net(t);
+    } else days.push({ date: t.date, txns: [t], total: net(t) });
+  }
 
   return (
     <>
@@ -50,48 +58,54 @@ export function Activity({
               style={{ minHeight: 36 }}
             />
           </label>
-          <div className="segmented" role="group" aria-label="Show">
-            {(["all", "marked", "unmarked"] as const).map((f) => (
-              <button key={f} type="button" aria-pressed={filter === f} onClick={() => setFilter(f)}>
+          <div className="chip-scroll" role="group" aria-label="Filter">
+            {(["all", "unmarked", "marked"] as const).map((f) => (
+              <button key={f} type="button" className="filter-chip" aria-pressed={filter === f} onClick={() => setFilter(f)}>
                 {f === "all" ? "All" : f === "marked" ? "Marked" : "Not marked"}
               </button>
             ))}
-          </div>
-          {category && (
-            <div className="chips" style={{ marginTop: 0 }}>
-              <button type="button" className="pill" onClick={onClearCategory} aria-label={`Showing ${category} only. Show all categories.`}>
-                {category} ✕
+            <span className="chip-divider" aria-hidden="true" />
+            {summary.categories.map((c) => (
+              <button
+                key={c.category}
+                type="button"
+                className="filter-chip"
+                aria-pressed={category === c.category}
+                onClick={() => onCategory(category === c.category ? null : c.category)}
+              >
+                {c.category}
               </button>
-            </div>
-          )}
+            ))}
+          </div>
+          <div className="dim num" style={{ fontSize: 13, margin: "0 4px" }}>
+            {list.length} {list.length === 1 ? "transaction" : "transactions"} · {money(total)}
+            {summary.marksSum > 0 && !category && !q && filter === "all" ? ` · ${money(summary.marksSum)} paid back` : ""}
+          </div>
         </div>
       </Section>
 
-      {summary.marksSum > 0 && !q && !category && (
-        <Section>
-          <div className="row">
-            <span className="row-main">Paid back to you</span>
-            <span className="num green">{money(summary.marksSum)}</span>
-          </div>
-        </Section>
-      )}
-
-      {days.size === 0 && (
+      {days.length === 0 ? (
         <div className="center" style={{ minHeight: "30dvh" }}>
           <div>
             <h2>{q ? "No results" : filter === "marked" ? "Nothing marked" : "No transactions"}</h2>
             {filter === "marked" && !q && <p>Tap a transaction to mark money you got back.</p>}
           </div>
         </div>
-      )}
-
-      {[...days.entries()].map(([date, txns]) => (
-        <Section key={date} header={dayLong(date)}>
-          {txns.map((t) => (
-            <TxnRow key={t.id} txn={t} mark={marks.get(t.id)} onOpen={onOpen} />
+      ) : (
+        <Section>
+          {days.map((d) => (
+            <div key={d.date} role="group" aria-label={dayLong(d.date)}>
+              <div className="day-header">
+                <span>{dayLong(d.date)}</span>
+                <span className="num">{money(d.total)}</span>
+              </div>
+              {d.txns.map((t) => (
+                <TxnRow key={t.id} txn={t} mark={marks.get(t.id)} onOpen={onOpen} />
+              ))}
+            </div>
           ))}
         </Section>
-      ))}
+      )}
     </>
   );
 }
