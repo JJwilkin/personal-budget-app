@@ -11,6 +11,7 @@ import {
   type Dashboard,
   type MonthSummary,
 } from "./data";
+import { useLook } from "./look";
 import { CategoryIcon, Chevron, Section } from "./ui";
 
 type Range = "day" | "week" | "month";
@@ -28,10 +29,15 @@ export function Overview({
   months: Bucket[];
   onOpenCategory: (category: string) => void;
 }) {
+  const { look, setLook } = useLook();
   return (
     <>
       <Section plain>
-        <div className="group"><div className="card"><SummaryCard summary={summary} /></div></div>
+        {look === "calm" ? (
+          <CalmSummary summary={summary} />
+        ) : (
+          <div className="group"><div className="card"><SummaryCard summary={summary} /></div></div>
+        )}
       </Section>
 
       <Section footer="Rent is left out of the bars so everyday spending stays readable. Tap or drag across the chart to see a bar.">
@@ -78,7 +84,62 @@ export function Overview({
           ))}
         </Section>
       )}
+
+      <Section header="Look" plain footer="Changes how the app looks on this device only.">
+        <div className="segmented" role="group" aria-label="Look">
+          <button type="button" aria-pressed={look === "ios"} onClick={() => setLook("ios")}>iOS</button>
+          <button type="button" aria-pressed={look === "calm"} onClick={() => setLook("calm")}>Calm</button>
+        </div>
+      </Section>
     </>
+  );
+}
+
+/** Calm fintech summary: a green hero card with the rent / everyday split, then three stat tiles. */
+function CalmSummary({ summary }: { summary: MonthSummary }) {
+  const everyday = Math.max(0, summary.outOfPocketExRent);
+  const whole = summary.rent + everyday;
+  const rentPct = whole > 0 ? (summary.rent / whole) * 100 : 0;
+  const [dollars, cents = "00"] = money(summary.outOfPocket).split(".");
+  return (
+    <div>
+      <div className="hero">
+        <div className="hero-label">Out of pocket</div>
+        <div className="hero-number num">
+          {dollars}
+          <small>.{cents}</small>
+        </div>
+        <div className="hero-split" role="img" aria-label={`Rent ${money(summary.rent)}, everyday ${money(everyday)}`}>
+          <span style={{ width: `${rentPct}%`, background: "rgba(255,255,255,0.55)" }} />
+          <span style={{ width: `${100 - rentPct}%`, background: "var(--hero-accent)" }} />
+        </div>
+        <div className="hero-legend">
+          <span><i style={{ background: "rgba(255,255,255,0.55)" }} />Rent {money0(summary.rent)}</span>
+          <span><i style={{ background: "var(--hero-accent)" }} />Everyday {money(everyday)}</span>
+        </div>
+      </div>
+      <div className="tiles">
+        <div className="tile">
+          <span className="tile-value num">{money(summary.perDayExRent)}</span>
+          <span className="tile-label">a day, rent aside</span>
+        </div>
+        <div className="tile">
+          <span className="tile-value num">{summary.transactions.length}</span>
+          <span className="tile-label">transactions</span>
+        </div>
+        {summary.brexWaiting > 0 ? (
+          <div className="tile warn">
+            <span className="tile-value num">{money(summary.brexWaiting)}</span>
+            <span className="tile-label">waiting on Brex</span>
+          </div>
+        ) : (
+          <div className="tile good">
+            <span className="tile-value num">{money(summary.marksSum + summary.brexReceived)}</span>
+            <span className="tile-label">paid back</span>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

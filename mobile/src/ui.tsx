@@ -30,7 +30,7 @@ export function Glyph({ d, strokeWidth = 2 }: { d: string; strokeWidth?: number 
 
 export function CategoryIcon({ category }: { category: string }) {
   return (
-    <span className="icon" style={{ background: categoryColor(category) }} aria-hidden="true">
+    <span className="icon" style={{ ["--cat" as string]: categoryColor(category) }} aria-hidden="true">
       <Glyph d={CATEGORY_GLYPHS[category] ?? OTHER_GLYPH} strokeWidth={2.2} />
     </span>
   );

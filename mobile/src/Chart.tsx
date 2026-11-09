@@ -63,6 +63,8 @@ export function BarChart({
   const y = (v: number) => PAD_T + PLOT_H - (Math.max(0, v) / max) * PLOT_H;
   const cx = (i: number) => PAD_L + slot * i + slot / 2;
   const emphasis = selected ?? highlight ?? null;
+  const tallest = bars.reduce<ChartBar | null>((m, b) => (b.value > (m?.value ?? 0) ? b : m), null);
+  const peak = emphasis ?? tallest?.key ?? null;
 
   const keyAt = (e: PointerEvent<SVGSVGElement>): string | null => {
     const rect = svgRef.current?.getBoundingClientRect();
@@ -107,7 +109,7 @@ export function BarChart({
         return (
           <g key={b.key}>
             {h > 0 && (
-              <rect className={`bar${dim ? " dim" : ""}`} x={cx(i) - barW / 2} y={PAD_T + PLOT_H - h} width={barW} height={h} rx={Math.min(3, barW / 2)} />
+              <rect className={`bar${dim ? " dim" : ""}${b.key === peak ? " peak" : ""}`} x={cx(i) - barW / 2} y={PAD_T + PLOT_H - h} width={barW} height={h} rx={Math.min(3, barW / 2)} />
             )}
             {b.label && (
               <text x={cx(i)} y={H - 6} textAnchor="middle">{b.label}</text>

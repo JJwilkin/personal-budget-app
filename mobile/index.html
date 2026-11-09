@@ -12,6 +12,11 @@
     <meta name="apple-mobile-web-app-title" content="Budget" />
     <!-- Manifest and icon links are added by scripts/build-mobile.mjs, since
          the bundler would otherwise try to bundle files from public/. -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" />
+    <script>
+      try { document.documentElement.dataset.look = localStorage.getItem("budget-look") === "calm" ? "calm" : "ios"; } catch (e) {}
+    </script>
     <title>Budget</title>
     <link rel="stylesheet" href="./src/styles.css" />
     <script src="./src/main.tsx" type="module"></script>
